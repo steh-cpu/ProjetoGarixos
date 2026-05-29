@@ -1,4 +1,3 @@
-
 # Garixos - Sistema de Gestão de Zeladoria e Coleta de Resíduos
 
 Este projeto é uma plataforma fullstack desenvolvida como projeto acadêmico para gerenciar a logística de coleta de resíduos, conectando cidadãos a empresas de limpeza urbana. Inicialmente concebido como um protótipo visual, o sistema agora conta com uma camada robusta de dados em Node.js e banco de dados relacional.
@@ -28,8 +27,10 @@ O backend é construído em Node.js com a ORM Sequelize para gerenciar toda a op
 
 ### Estrutura de Diretórios
 - `package.json`: Dependências do Node e scripts.
+- `server.js`: Ponto de entrada da API RESTful com Express.
 - `config/config.json`: Configuração de conexão com o banco de dados.
 - `models/`: Definições das entidades Sequelize e arquivo de inicialização (`index.js`).
+- `repositories/`: Camada de abstração para as operações no banco de dados.
 - `migrations/`: Arquivos de migração para criar as tabelas no banco de dados.
 - `seeders/`: Diretórios para carregamento de dados fictícios ou iniciais.
 
@@ -42,6 +43,22 @@ O backend é construído em Node.js com a ORM Sequelize para gerenciar toda a op
 - `Endereco` (`models/endereco.js`)
 - `SolicitacaoColeta` (`models/solicitacaocoleta.js`)
 - `HistoricoSolicitacao` (`models/historicosolicitacao.js`)
+
+---
+
+## 🚀 Atualizações Recentes (Maio 2026)
+
+O back-end do Garixos passou por uma grande evolução estrutural, consolidando o núcleo relacional do sistema. A API agora suporta o ciclo de vida completo (CRUD) para as principais entidades da logística de coleta, com validações de integridade no PostgreSQL.
+
+### ✨ Novas Funcionalidades Implementadas:
+* **Gestão de Usuários e Empresas:** Finalização das rotas de atualização (`PUT`) e exclusão (`DELETE`), com proteção e regras de negócio.
+* **Mapeamento de Endereços:** CRUD completo da entidade `Endereços`, garantindo que os usuários possam registrar os locais exatos para as coletas.
+* **Zonamento Logístico:** Implementação da entidade `ZonaColetas` para dividir as áreas de atuação (ex: Zona Norte, Baixada Fluminense) e resolver chaves estrangeiras com os endereços.
+* **Gestão de Frota:** Cadastro e gerenciamento de `Veículos` para alocação nas operações das empresas de coleta.
+* **O Coração do Sistema (Solicitações de Coleta):**
+  * Criação completa do fluxo transacional cruzando Usuário, Endereço e Veículo.
+  * Implementação de mudança de status logístico (ex: de `PENDENTE` para `EM_ANDAMENTO`).
+  * **Consultas Avançadas (Eager Loading):** As rotas de requisição (`GET`) agora utilizam relacionamentos do Sequelize (`include`) para retornar um JSON estruturado e limpo, trazendo automaticamente os nomes dos usuários, logradouros e placas dos veículos, otimizando o consumo de dados pelo front-end e por futuros dashboards.
 
 ---
 
@@ -125,8 +142,8 @@ erDiagram
     ENDERECOS ||--o{ SOLICITACOES_COLETA : "local_da"
     SOLICITACOES_COLETA ||--o{ HISTORICO_SOLICITACOES : "possui"
     EMPRESAS_LIMPEZA |o--o{ USUARIOS : "emprega"
+```   
 
-```
 ## 🚀 Instalação e Uso
  1. **Clone o repositório:**
    ```bash
@@ -154,7 +171,7 @@ erDiagram
 ## 📌 Observações Finais
  * O projeto usa sequelize e pg para conectar ao PostgreSQL.
  * O arquivo models/index.js contém a inicialização do Sequelize e a importação automática de todos os modelos.
- * Atualmente, o repositório tem foco consolidado na camada de dados e migrações. A configuração completa das rotas do servidor HTTP está em andamento.
+ * As rotas HTTP (API REST) para as entidades principais (Usuários, Empresas, Endereços, Veículos, Zonas e Solicitações) já foram estabelecidas e testadas com Express e Postman.
  * **Licença:** ISC
 ```
 
