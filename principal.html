@@ -1,0 +1,421 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garixos - Principal</title>
+  <link rel="stylesheet" href="./css/styles.css">
+  <link rel="stylesheet" href="./css/features.css">
+  <!-- Leaflet.js para mapa real -->
+  <link rel="icon" href="./assets/logoprincipal.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+</head>
+<body>
+  <!-- ========== HEADER ========== -->
+  <div class="dashboard-shell">
+    <header class="page-header clean-header">
+  <div class="header-main">
+
+    <a href="#features" class="logo-area">
+      <img src="assets/logoprincipal.png" alt="Logo Garixos" class="site-logo">
+      <div>
+        <strong>Garixos</strong>
+        <span>Coleta inteligente de resíduos</span>
+      </div>
+    </a>
+
+    <div class="header-search">
+      <input 
+        type="text" 
+        id="searchInput"
+        name="searchInput"
+        placeholder="Buscar endereço, ponto de coleta ou serviço...">
+      <button type="button">Buscar</button>
+    </div>
+
+    <div class="header-actions">
+      <a href="#features">Início</a>
+      <a href="#support">Suporte</a>
+
+      <div class="notification-bell">
+        <button id="notificationBtn" class="bell-btn" aria-label="Abrir notificações" aria-expanded="false">
+          🔔
+          <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+        </button>
+
+        <div class="notification-dropdown" id="notificationDropdown" aria-hidden="true">
+          <div class="notification-header">📢 Notificações</div>
+          <div class="notification-list" id="notificationList">
+            <p class="notification-empty">Nenhuma notificação no momento</p>
+          </div>
+        </div>
+      </div>
+      <a id="userLink" href="index.html">Sair</a>
+      <a id="logoutLink" href="#logout" onclick="logout(event)" class="logout-link" style="display:none;">Sair</a>
+    </div>
+
+  </div>
+</header>
+    <!-- ========== GRID DE 6 CARDS PRINCIPAIS ========== -->
+    <section class="features-grid" id="features">
+      <!-- Card 1: Histórico -->
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <div class="feature-content">
+          <h3>Histórico de Solicitações</h3>
+          <p>Consulte todas as suas solicitações de coleta.</p>
+        </div>
+        <button class="view-btn" onclick="openHistorico()" aria-label="Ver histórico de solicitações">Ver Detalhes</button>
+      </div>
+
+      <!-- Card 2: Mapa em Tempo Real -->
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <div class="feature-content">
+          <h3>Mapa em Tempo Real</h3>
+          <p>Localize caminhões e pontos de coleta próximos.</p>
+        </div>
+        <button class="view-btn" onclick="openMapa()" aria-label="Abrir mapa interativo">Abrir Mapa</button>
+      </div>
+
+      <!-- Card 3: Solicitar Coleta -->
+      <div class="feature-card">
+        <div class="feature-icon">♻️</div>
+        <div class="feature-content">
+          <h3>Solicitar Coleta</h3>
+          <p>Solicite uma coleta de resíduos no seu endereço.</p>
+        </div>
+        <button class="view-btn" onclick="openSolicitacao()" aria-label="Solicitar coleta de lixo">Solicitar</button>
+      </div>
+
+      <!-- Card 4: Horários de Coleta -->
+      <div class="feature-card">
+        <div class="feature-icon">⏰</div>
+        <div class="feature-content">
+          <h3>Horários de Coleta</h3>
+          <p>Consulte os horários para sua região.</p>
+        </div>
+        <button class="view-btn" onclick="openHorarios()" aria-label="Ver horários de coleta">Ver Horários</button>
+      </div>
+
+      <!-- Card 5: Cadastro de Endereço -->
+      <div class="feature-card">
+        <div class="feature-icon">📍</div>
+        <div class="feature-content">
+          <h3>Cadastro de Endereço</h3>
+          <p>Cadastre seus endereços de coleta.</p>
+        </div>
+        <button class="view-btn" onclick="openCadastroEndereco()" aria-label="Cadastrar novo endereço">Cadastrar</button>
+      </div>
+
+      <!-- Card 6: Notícias Ambientais -->
+      <div class="feature-card">
+        <div class="feature-icon">🌍</div>
+        <div class="feature-content">
+          <h3>Notícias Ambientais</h3>
+          <p>Acompanhe notícias sobre o meio ambiente.</p>
+        </div>
+        <button class="view-btn" onclick="openNoticias()" aria-label="Ler notícias ambientais">Ler Notícias</button>
+      </div>
+    </section>
+
+    <!-- ========== MODAIS ========== -->
+    
+    <!-- Modal: Histórico de Solicitações -->
+    <div id="historicoModal" class="modal" role="dialog" aria-labelledby="historicoTitle" aria-hidden="true">
+      <div class="modal-content">
+        <button class="close-btn" onclick="closeHistorico()" aria-label="Fechar modal">&times;</button>
+        <h2 id="historicoTitle">Histórico de Solicitações</h2>
+        <div class="modal-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Hora</th>
+                <th>Local</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="historicoBody">
+              <tr id="historicoEmpty">
+                <td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">
+                  Nenhuma solicitação de coleta registrada ainda.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Mapa em Tempo Real -->
+    <div id="mapaModal" class="modal" role="dialog" aria-labelledby="mapaTitle" aria-hidden="true">
+  <div class="modal-content modal-large">
+    <button class="close-btn" onclick="closeMapa()" aria-label="Fechar modal">&times;</button>
+    <h2 id="mapaTitle">Mapa em Tempo Real</h2>
+
+    <div class="modal-body">
+      <div id="mapContainer" class="map-container"></div>
+
+      <div class="map-legend">
+        <p>🚛 Caminhão em atividade</p>
+        <p>🗑️ Lata de lixo</p>
+        <p>📍 Sua localização</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- Modal: Solicitar Coleta -->
+    <div id="solicitacaoModal" class="modal" role="dialog" aria-labelledby="solicitacaoTitle" aria-hidden="true">
+      <div class="modal-content">
+        <button class="close-btn" onclick="closeSolicitacao()" aria-label="Fechar modal">&times;</button>
+        <h2 id="solicitacaoTitle">Solicitar Coleta de Lixo</h2>
+        <div class="modal-body">
+          <form id="solicitacaoForm" class="form-layout">
+            <div class="form-group">
+              <label for="tipoLixo">Tipo de Lixo:</label>
+              <select id="tipoLixo" required>
+                <option value="">Selecione o tipo</option>
+                <option value="comum">Lixo Comum</option>
+                <option value="organico">Lixo Orgânico</option>
+                <option value="reciclavel">Reciclável</option>
+                <option value="volumoso">Volumoso</option>
+                <option value="perigoso">Perigoso</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="endereco">Endereço:</label>
+              <input type="text" id="endereco" placeholder="Rua, número, complemento" required>
+            </div>
+            <div class="form-group">
+              <label for="nomeSolicitacao">Nome:</label>
+              <input type="text" id="nomeSolicitacao" placeholder="Seu nome completo" required>
+            </div>
+            <div class="form-group">
+              <label for="mensagemSolicitacao">Mensagem:</label>
+              <input type="text" id="mensagemSolicitacao" placeholder="Descreva a situação" required>
+            </div>
+            <button type="submit" class="primary-btn">Solicitar Coleta</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Horários de Coleta -->
+    <div id="horariosModal" class="modal" role="dialog" aria-labelledby="horariosTitle" aria-hidden="true">
+      <div class="modal-content">
+        <button class="close-btn" onclick="closeHorarios()" aria-label="Fechar modal">&times;</button>
+        <h2 id="horariosTitle">Horários de Coleta</h2>
+        <div class="modal-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Dia da Semana</th>
+                <th>Horário</th>
+                <th>Tipo de Lixo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Segunda</td>
+                <td>07:00 - 18:00</td>
+                <td>Lixo Comum</td>
+              </tr>
+              <tr>
+                <td>Terça</td>
+                <td>07:00 - 18:00</td>
+                <td>Reciclável</td>
+              </tr>
+              <tr>
+                <td>Quarta</td>
+                <td>07:00 - 18:00</td>
+                <td>Lixo Comum</td>
+              </tr>
+              <tr>
+                <td>Quinta</td>
+                <td>07:00 - 18:00</td>
+                <td>Orgânico</td>
+              </tr>
+              <tr>
+                <td>Sexta</td>
+                <td>07:00 - 18:00</td>
+                <td>Lixo Comum</td>
+              </tr>
+              <tr>
+                <td>Sábado</td>
+                <td>08:00 - 12:00</td>
+                <td>Volumoso</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Cadastro de Endereço -->
+    <div id="cadastroEnderecoModal" class="modal" role="dialog" aria-labelledby="cadastroTitle" aria-hidden="true">
+      <div class="modal-content">
+        <button class="close-btn" onclick="closeCadastroEndereco()" aria-label="Fechar modal">&times;</button>
+        <h2 id="cadastroTitle">Cadastro de Endereço</h2>
+        <div class="modal-body">
+          <form id="cadastroEnderecoForm" class="form-layout">
+            <div class="form-group">
+              <label for="rua">Rua:</label>
+              <input type="text" id="rua" placeholder="Nome da rua" required>
+            </div>
+            <div class="form-group">
+              <label for="numero">Número:</label>
+              <input type="text" id="numero" placeholder="Número" required>
+            </div>
+            <div class="form-group">
+              <label for="complemento">Complemento:</label>
+              <input type="text" id="complemento" placeholder="Apto, bloco, etc (opcional)">
+            </div>
+            <div class="form-group">
+              <label for="bairro">Bairro:</label>
+              <input type="text" id="bairro" placeholder="Bairro" required>
+            </div>
+            <div class="form-group">
+              <label for="cidade">Cidade:</label>
+              <input type="text" id="cidade" placeholder="Cidade" required>
+            </div>
+            <div class="form-group">
+              <label for="cep">CEP:</label>
+              <input type="text" id="cep" placeholder="00000-000" maxlength="9" required>
+            </div>
+            <button type="submit" class="primary-btn">Cadastrar Endereço</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Notícias Ambientais -->
+    <div id="noticiasModal" class="modal" role="dialog" aria-labelledby="noticiasTitle" aria-hidden="true">
+      <div class="modal-content modal-large">
+        <button class="close-btn" onclick="closeNoticias()" aria-label="Fechar modal">&times;</button>
+        <h2 id="noticiasTitle">Notícias Ambientais</h2>
+        <div class="modal-body">
+          <div id="noticiasContainer" class="noticias-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Assistente Virtual / Modo Idoso -->
+    <div id="assistantModal" class="modal" role="dialog" aria-labelledby="assistantTitle" aria-hidden="true">
+      <div class="modal-content modal-assistant">
+        <button class="close-btn" onclick="closeAssistant()" aria-label="Fechar assistente">&times;</button>
+        <h2 id="assistantTitle">Olá! Sou a Assistente Virtual</h2>
+        <div class="modal-body">
+          <div id="assistantContent">
+            <p style="font-size: 1.05rem; margin-bottom: 1rem;">Vamos começar! Qual é o seu nome completo?</p>
+            <input type="text" id="assistantName" placeholder="Digite seu nome" class="form-input">
+            <p style="font-size: 1.05rem; margin: 1.5rem 0 1rem;">Qual é sua data de nascimento?</p>
+            <input type="date" id="assistantBirthDate" class="form-input">
+            <button onclick="processAssistantData()" class="primary-btn" style="margin-top: 1.5rem; width: 100%;">Continuar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div id="ageCheckModal" class="modal age-modal" aria-hidden="true">
+  <div class="modal-content age-modal-content">
+    <button class="close-btn" onclick="closeAgeCheck()" aria-label="Fechar">&times;</button>
+
+    <h2>Antes de continuar</h2>
+    <p>Informe sua data de nascimento para verificarmos se deseja ativar o modo idoso.</p>
+
+    <input type="date" id="ageBirthDate" class="form-input">
+
+    <div class="age-actions">
+      <button class="primary-btn" onclick="checkUserAge()">Continuar</button>
+      <button class="cancel-btn" onclick="closeAgeCheck()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="elderlyConfirmModal" class="modal age-modal" aria-hidden="true">
+  <div class="modal-content age-modal-content">
+    <button class="close-btn" onclick="closeElderlyConfirm()" aria-label="Fechar">&times;</button>
+
+    <h2>Modo idoso disponível</h2>
+    <p>Identificamos que você tem mais de 60 anos. Deseja ativar o modo idoso?</p>
+
+    <div class="age-actions">
+      <button class="primary-btn" onclick="confirmElderlyMode()">Sim</button>
+      <button class="cancel-btn" onclick="closeElderlyConfirm()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+  <!-- ========== BOTÃO FLUTUANTE DO ASSISTENTE VIRTUAL ========== -->
+  <button class="assistant-fab" id="assistantFab" aria-label="Abrir assistente virtual" title="Assistente virtual">
+    <img src="assets/assistentevirt.png" alt="Assistente" class="assistant-img">
+  </button>
+  <div id="notificationToast" class="notification-toast">
+  Você tem uma nova notificação
+</div>
+
+  <!-- ========== SEÇÃO DE SUPORTE ========== -->
+  <section class="support-section" id="support">
+    <div class="support-container">
+      <h2>Precisa de Ajuda?</h2>
+      <p class="support-subtitle">Entre em contato com nosso time de suporte</p>
+      <div class="support-form-wrapper">
+        <div class="form-card">
+          <h3>Enviar para Suporte</h3>
+          <form id="supportForm">
+            <div class="form-group">
+              <label for="supportEmail">Email:</label>
+              <input id="supportEmail" type="email" placeholder="seu@email.com" required>
+            </div>
+            <div class="form-group">
+              <label for="supportSubject">Assunto:</label>
+              <input id="supportSubject" type="text" placeholder="Descreva o assunto" required>
+            </div>
+            <div class="form-group">
+              <label for="supportMessage">Mensagem:</label>
+              <textarea id="supportMessage" placeholder="Descreva seu problema..." rows="5" required></textarea>
+            </div>
+            <button type="submit" class="primary-btn">Enviar para Suporte</button>
+            <div class="form-message" id="supportMessage-response"></div>
+          </form>
+        </div>
+
+        <div class="form-card">
+          <h3>Enviar Feedback</h3>
+          <form id="feedbackForm">
+            <div class="form-group">
+              <label for="feedbackEmail">Email:</label>
+              <input id="feedbackEmail" type="email" placeholder="seu@email.com" required>
+            </div>
+            <div class="form-group">
+              <label for="feedbackType">Tipo de Feedback:</label>
+              <select id="feedbackType" required>
+                <option value="">Escolha uma opção</option>
+                <option value="sugestao">Sugestão</option>
+                <option value="bug">Reportar Bug</option>
+                <option value="elogio">Elogio</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="feedbackMessage">Mensagem:</label>
+              <textarea id="feedbackMessage" placeholder="Nos conte sua opinião..." rows="5" required></textarea>
+            </div>
+            <button type="submit" class="primary-btn">Enviar Feedback</button>
+            <div class="form-message" id="feedbackMessage-response"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SCRIPTS ========== -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  
+  <script src="./js/script.js"></script>
+</body>
+</html>

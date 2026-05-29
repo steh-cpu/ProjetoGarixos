@@ -1,0 +1,335 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Garixos</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+</head>
+<body class="auth-page">
+    <div class="page-container">
+        <section class="auth-card">
+            <div class="brand">
+                <img src="assets/logosemfundo.png" alt="Garixos" class="brand-logo">
+                <div>
+                    <p class="brand-subtitle">Crie sua conta Garixos.</p>
+                </div>
+            </div>
+
+            <div class="message-box" id="registerMessage"></div>
+
+            <form id="registerForm">
+                    <div>
+                    <label for="fullNameCreate">Nome completo</label>
+                    <input id="fullNameCreate" type="text" placeholder="Digite seu nome completo" required>
+                </div>
+
+                <label>Email</label>
+                <input id="emailCreate" type="email" placeholder="Digite seu email" required>
+
+
+                <div>
+                    <label for="cpfCreate">CPF</label>
+                    <input id="cpfCreate" name="cpf" type="text" placeholder="000.000.000-00" maxlength="14" required>
+                </div>
+
+                <div>
+                    <label for="passwordCreate">Criar senha</label>
+                    <div class="password-wrapper">
+  <input type="password"
+         id="passwordCreate"
+         placeholder="Crie sua senha">
+         <span class="toggle-password"
+      onclick="togglePassword('passwordCreate', this)">
+      <i class="fa-solid fa-eye"></i>
+</span>
+</div>
+                </div>
+                <div id="passwordChecklist" class="password-checklist">
+                    <p id="reqLength">❌ Pelo menos 8 caracteres</p>
+                    <p id="reqUpper">❌ Uma letra maiúscula</p>
+                    <p id="reqLower">❌ Uma letra minúscula</p>
+                    <p id="reqNumber">❌ Um número</p>
+                    <p id="reqSymbol">❌ Um caractere especial</p>
+                </div>
+
+                <div>
+                    <label for="confirmPasswordCreate">Repetir senha</label>
+                    <div class="password-wrapper">
+                        <input type="password"
+       id="confirmPasswordCreate"
+       placeholder="Confirme sua senha">
+       <span class="toggle-password"
+      onclick="togglePassword('confirmPasswordCreate', this)">
+      <i class="fa-solid fa-eye"></i>
+</span>
+</div>
+                </div>
+
+                <div>
+                    <label for="cepCreate">CEP</label>
+                    <input id="cepCreate" type="text" placeholder="00000-000" maxlength="9" required>
+                </div>
+
+                <div>
+                    <label for="streetCreate">Rua</label>
+                    <input id="streetCreate" type="text" placeholder="Rua será preenchida automaticamente" readonly required>
+                </div>
+
+                <div>
+                    <label for="numberCreate">Número</label>
+                    <input id="numberCreate" type="text" placeholder="Número" required>
+                </div>
+
+                <div class="checkbox-row">
+                    <input id="noNumberCreate" type="checkbox">
+                    <label for="noNumberCreate">S/ número</label>
+                </div>
+
+                <button type="submit" class="primary-btn">Criar conta</button>
+            </form>
+
+            <p class="small-text">Já tem cadastro? <a href="index.html">Faça login</a></p>
+        </section>
+
+        <section class="hero-panel">
+            <h2>Cadastro rápido e seguro</h2>
+            <p>Seu CPF será utilizado como identificador. Salve seus dados e acesse a página principal automaticamente.</p>
+        </section>
+    </div>
+
+    <script>
+        const storageKey = 'garinxoUsers';
+
+        function getUsers() {
+            const saved = localStorage.getItem(storageKey);
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem(storageKey, JSON.stringify(users));
+        }
+
+        function normalizeCPF(value) {
+            return value.replace(/\D/g, '');
+        }
+
+        function showMessage(text, type = 'error') {
+            const box = document.getElementById('registerMessage');
+            box.textContent = text;
+            box.className = `message-box ${type}`;
+            box.style.display = 'block';
+            setTimeout(() => {
+                box.style.display = 'none';
+            }, 5000);
+        }
+
+        function validatePasswordChecklist(password) {
+  const checks = {
+    reqLength: password.length >= 8,
+    reqUpper: /[A-Z]/.test(password),
+    reqLower: /[a-z]/.test(password),
+    reqNumber: /[0-9]/.test(password),
+    reqSymbol: /[^A-Za-z0-9]/.test(password)
+  };
+
+  Object.entries(checks).forEach(([id, isValid]) => {
+    const item = document.getElementById(id);
+    if (!item) return;
+
+    item.classList.toggle('valid', isValid);
+    item.classList.toggle('invalid', !isValid);
+
+    item.textContent = item.textContent.replace(/^❌|^✅/, isValid ? '✅' : '❌');
+  });
+
+  return Object.values(checks).every(Boolean);
+}
+
+function hasStrongPassword(password) {
+  return validatePasswordChecklist(password);
+}
+
+const passwordCreateInput = document.getElementById('passwordCreate');
+const passwordChecklist = document.getElementById('passwordChecklist');
+
+passwordCreateInput.addEventListener('focus', () => {
+  passwordChecklist.classList.add('show');
+});
+
+passwordCreateInput.addEventListener('blur', () => {
+  passwordChecklist.classList.remove('show');
+});
+
+passwordCreateInput.addEventListener('input', () => {
+  validatePasswordChecklist(passwordCreateInput.value);
+});
+
+        function maskCPF(value) {
+            const digits = normalizeCPF(value);
+            const part1 = digits.slice(0, 3);
+            const part2 = digits.slice(3, 6);
+            const part3 = digits.slice(6, 9);
+            const part4 = digits.slice(9, 11);
+            let masked = part1;
+            if (part2) masked += '.' + part2;
+            if (part3) masked += '.' + part3;
+            if (part4) masked += '-' + part4;
+            return masked;
+        }
+
+        function normalizeCEP(value) {
+            return value.replace(/\D/g, '');
+        }
+
+        function maskCEP(value) {
+            const digits = normalizeCEP(value);
+            const part1 = digits.slice(0, 5);
+            const part2 = digits.slice(5, 8);
+            return part1 + (part2 ? '-' + part2 : '');
+        }
+
+        async function fetchAddressByCEP(value) {
+            const cep = normalizeCEP(value);
+            const streetInput = document.getElementById('streetCreate');
+            if (cep.length !== 8) {
+                streetInput.value = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                const data = await response.json();
+                if (data.erro) {
+                    showMessage('CEP não encontrado. Informe um CEP válido.', 'error');
+                    streetInput.value = '';
+                    return;
+                }
+
+                streetInput.value = data.logradouro || '';
+                if (!streetInput.value) {
+                    showMessage('CEP válido, mas não foi possível preencher a rua automaticamente.', 'error');
+                }
+            } catch (error) {
+                showMessage('Falha ao buscar o CEP. Tente novamente.', 'error');
+                streetInput.value = '';
+            }
+        }
+
+        document.getElementById('cpfCreate').addEventListener('input', event => {
+            event.target.value = maskCPF(event.target.value);
+        });
+
+        document.getElementById('cepCreate').addEventListener('input', event => {
+            event.target.value = maskCEP(event.target.value);
+            if (normalizeCEP(event.target.value).length === 8) {
+                fetchAddressByCEP(event.target.value);
+            }
+        });
+
+        document.getElementById('noNumberCreate').addEventListener('change', event => {
+            const numberInput = document.getElementById('numberCreate');
+            if (event.target.checked) {
+                numberInput.value = 'S/N';
+                numberInput.disabled = true;
+            } else {
+                numberInput.value = '';
+                numberInput.disabled = false;
+                numberInput.focus();
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', event => {
+            event.preventDefault();
+            const fullName = document.getElementById('fullNameCreate').value.trim();
+            const email = document.getElementById('emailCreate').value.trim();
+            const cpf = normalizeCPF(document.getElementById('cpfCreate').value);
+            const password = document.getElementById('passwordCreate').value.trim();
+            const confirmPassword = document.getElementById('confirmPasswordCreate').value.trim();
+            const cep = normalizeCEP(document.getElementById('cepCreate').value);
+            const street = document.getElementById('streetCreate').value.trim();
+            const numberInput = document.getElementById('numberCreate');
+            const number = numberInput.disabled ? 'S/N' : numberInput.value.trim();
+            const noNumber = document.getElementById('noNumberCreate').checked;
+
+            if (cpf.length !== 11) {
+                showMessage('Informe um CPF válido com 11 dígitos.', 'error');
+                return;
+            }
+
+            if (!hasStrongPassword(password)) {
+                showMessage('A senha precisa ter maiúscula, minúscula, número e caractere especial.', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showMessage('As senhas não coincidem. Verifique e tente novamente.', 'error');
+                return;
+            }
+
+            const users = getUsers();
+            if (users.some(entry => entry.cpf === cpf)) {
+                showMessage('Este CPF já está cadastrado. Faça login.', 'error');
+                return;
+            }
+
+            if (!fullName) {
+                showMessage('Informe seu nome completo.', 'error');
+                return;
+            }
+
+            if (cep.length !== 8) {
+                showMessage('Informe um CEP válido com 8 dígitos.', 'error');
+                return;
+            }
+
+            if (!street) {
+                showMessage('Informe a rua via CEP ou preencha manualmente.', 'error');
+                return;
+            }
+
+            if (!noNumber && !number) {
+                showMessage('Informe o número ou marque S/ número.', 'error');
+                return;
+            }
+
+            users.push({
+                fullName,
+                firstName: fullName.split(' ')[0] || fullName,
+                email,
+                cpf,
+                password,
+                cep,
+                street,
+                number: noNumber ? 'S/N' : number,
+                noNumber,
+                history: []
+            });
+            saveUsers(users);
+            showMessage('Cadastro concluído! Redirecionando para login...', 'success');
+
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1800);
+        });
+        function togglePassword(inputId, iconContainer) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  const icon = iconContainer.querySelector('i');
+
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.classList.remove('fa-eye');
+    icon.classList.add('fa-eye-slash');
+  } else {
+    input.type = 'password';
+    icon.classList.remove('fa-eye-slash');
+    icon.classList.add('fa-eye');
+  }
+}
+    </script>
+</body>
+</html>
