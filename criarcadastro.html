@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro - Garixos</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 </head>
 <body class="auth-page">
     <div class="page-container">
@@ -21,14 +20,15 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
             <div class="message-box" id="registerMessage"></div>
 
             <form id="registerForm">
-                    <div>
+                <div>
                     <label for="fullNameCreate">Nome completo</label>
                     <input id="fullNameCreate" type="text" placeholder="Digite seu nome completo" required>
                 </div>
 
-                <label>Email</label>
-                <input id="emailCreate" type="email" placeholder="Digite seu email" required>
-
+                <div>
+                    <label>Email</label>
+                    <input id="emailCreate" type="email" placeholder="Digite seu email" required>
+                </div>
 
                 <div>
                     <label for="cpfCreate">CPF</label>
@@ -38,15 +38,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
                 <div>
                     <label for="passwordCreate">Criar senha</label>
                     <div class="password-wrapper">
-  <input type="password"
-         id="passwordCreate"
-         placeholder="Crie sua senha">
-         <span class="toggle-password"
-      onclick="togglePassword('passwordCreate', this)">
-      <i class="fa-solid fa-eye"></i>
-</span>
-</div>
+                        <input type="password" id="passwordCreate" placeholder="Crie sua senha" required>
+                        <span class="toggle-password" onclick="togglePassword('passwordCreate', this)">
+                            <i class="fa-solid fa-eye"></i>
+                        </span>
+                    </div>
                 </div>
+                
                 <div id="passwordChecklist" class="password-checklist">
                     <p id="reqLength">❌ Pelo menos 8 caracteres</p>
                     <p id="reqUpper">❌ Uma letra maiúscula</p>
@@ -58,14 +56,11 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
                 <div>
                     <label for="confirmPasswordCreate">Repetir senha</label>
                     <div class="password-wrapper">
-                        <input type="password"
-       id="confirmPasswordCreate"
-       placeholder="Confirme sua senha">
-       <span class="toggle-password"
-      onclick="togglePassword('confirmPasswordCreate', this)">
-      <i class="fa-solid fa-eye"></i>
-</span>
-</div>
+                        <input type="password" id="confirmPasswordCreate" placeholder="Confirme sua senha" required>
+                        <span class="toggle-password" onclick="togglePassword('confirmPasswordCreate', this)">
+                            <i class="fa-solid fa-eye"></i>
+                        </span>
+                    </div>
                 </div>
 
                 <div>
@@ -101,17 +96,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     </div>
 
     <script>
-        const storageKey = 'garinxoUsers';
-
-        function getUsers() {
-            const saved = localStorage.getItem(storageKey);
-            return saved ? JSON.parse(saved) : [];
-        }
-
-        function saveUsers(users) {
-            localStorage.setItem(storageKey, JSON.stringify(users));
-        }
-
+        // Funções de formatação e Validação Visuais
         function normalizeCPF(value) {
             return value.replace(/\D/g, '');
         }
@@ -127,45 +112,43 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         }
 
         function validatePasswordChecklist(password) {
-  const checks = {
-    reqLength: password.length >= 8,
-    reqUpper: /[A-Z]/.test(password),
-    reqLower: /[a-z]/.test(password),
-    reqNumber: /[0-9]/.test(password),
-    reqSymbol: /[^A-Za-z0-9]/.test(password)
-  };
+            const checks = {
+                reqLength: password.length >= 8,
+                reqUpper: /[A-Z]/.test(password),
+                reqLower: /[a-z]/.test(password),
+                reqNumber: /[0-9]/.test(password),
+                reqSymbol: /[^A-Za-z0-9]/.test(password)
+            };
 
-  Object.entries(checks).forEach(([id, isValid]) => {
-    const item = document.getElementById(id);
-    if (!item) return;
+            Object.entries(checks).forEach(([id, isValid]) => {
+                const item = document.getElementById(id);
+                if (!item) return;
+                item.classList.toggle('valid', isValid);
+                item.classList.toggle('invalid', !isValid);
+                item.textContent = item.textContent.replace(/^❌|^✅/, isValid ? '✅' : '❌');
+            });
 
-    item.classList.toggle('valid', isValid);
-    item.classList.toggle('invalid', !isValid);
+            return Object.values(checks).every(Boolean);
+        }
 
-    item.textContent = item.textContent.replace(/^❌|^✅/, isValid ? '✅' : '❌');
-  });
+        function hasStrongPassword(password) {
+            return validatePasswordChecklist(password);
+        }
 
-  return Object.values(checks).every(Boolean);
-}
+        const passwordCreateInput = document.getElementById('passwordCreate');
+        const passwordChecklist = document.getElementById('passwordChecklist');
 
-function hasStrongPassword(password) {
-  return validatePasswordChecklist(password);
-}
+        passwordCreateInput.addEventListener('focus', () => {
+            passwordChecklist.classList.add('show');
+        });
 
-const passwordCreateInput = document.getElementById('passwordCreate');
-const passwordChecklist = document.getElementById('passwordChecklist');
+        passwordCreateInput.addEventListener('blur', () => {
+            passwordChecklist.classList.remove('show');
+        });
 
-passwordCreateInput.addEventListener('focus', () => {
-  passwordChecklist.classList.add('show');
-});
-
-passwordCreateInput.addEventListener('blur', () => {
-  passwordChecklist.classList.remove('show');
-});
-
-passwordCreateInput.addEventListener('input', () => {
-  validatePasswordChecklist(passwordCreateInput.value);
-});
+        passwordCreateInput.addEventListener('input', () => {
+            validatePasswordChecklist(passwordCreateInput.value);
+        });
 
         function maskCPF(value) {
             const digits = normalizeCPF(value);
@@ -191,6 +174,8 @@ passwordCreateInput.addEventListener('input', () => {
             return part1 + (part2 ? '-' + part2 : '');
         }
 
+        let bairroViaCEP = "Não informado"; 
+
         async function fetchAddressByCEP(value) {
             const cep = normalizeCEP(value);
             const streetInput = document.getElementById('streetCreate');
@@ -209,6 +194,8 @@ passwordCreateInput.addEventListener('input', () => {
                 }
 
                 streetInput.value = data.logradouro || '';
+                bairroViaCEP = data.bairro || 'Não informado'; 
+                
                 if (!streetInput.value) {
                     showMessage('CEP válido, mas não foi possível preencher a rua automaticamente.', 'error');
                 }
@@ -241,8 +228,26 @@ passwordCreateInput.addEventListener('input', () => {
             }
         });
 
-        document.getElementById('registerForm').addEventListener('submit', event => {
+        function togglePassword(inputId, iconContainer) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            const icon = iconContainer.querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async event => {
             event.preventDefault();
+            
             const fullName = document.getElementById('fullNameCreate').value.trim();
             const email = document.getElementById('emailCreate').value.trim();
             const cpf = normalizeCPF(document.getElementById('cpfCreate').value);
@@ -254,6 +259,7 @@ passwordCreateInput.addEventListener('input', () => {
             const number = numberInput.disabled ? 'S/N' : numberInput.value.trim();
             const noNumber = document.getElementById('noNumberCreate').checked;
 
+            // Validações visuais locais
             if (cpf.length !== 11) {
                 showMessage('Informe um CPF válido com 11 dígitos.', 'error');
                 return;
@@ -269,67 +275,57 @@ passwordCreateInput.addEventListener('input', () => {
                 return;
             }
 
-            const users = getUsers();
-            if (users.some(entry => entry.cpf === cpf)) {
-                showMessage('Este CPF já está cadastrado. Faça login.', 'error');
+            if (!fullName || cep.length !== 8 || !street || (!noNumber && !number)) {
+                showMessage('Preencha todos os campos corretamente.', 'error');
                 return;
             }
 
-            if (!fullName) {
-                showMessage('Informe seu nome completo.', 'error');
-                return;
+            try {
+                // 1. Cria o Usuário no Banco de Dados
+                const respostaUsuario = await fetch('http://localhost:3000/api/usuarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome: fullName,
+                        email: email,
+                        senha: password,
+                        perfil: 'CLIENTE'
+                    })
+                });
+
+                if (respostaUsuario.ok) {
+                    const novoUsuario = await respostaUsuario.json();
+                    
+                    // 2. Se o usuário foi criado, usa o ID gerado para salvar o Endereço dele
+                    const respostaEndereco = await fetch('http://localhost:3000/api/enderecos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            usuario_id: novoUsuario.id, 
+                            cep: maskCEP(cep),
+                            logradouro: street,
+                            bairro: bairroViaCEP, // Agora envia o bairro correto do ViaCEP
+                            numero: number,
+                            zona_id: 1 // Temporário até existir lógica de áreas
+                        })
+                    });
+
+                    if (respostaEndereco.ok) {
+                        showMessage('Cadastro concluído com sucesso! Redirecionando para login...', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 2000);
+                    } else {
+                        showMessage('Conta criada, mas houve um erro ao gravar o seu endereço.', 'error');
+                    }
+                } else {
+                    showMessage('Erro ao criar conta. O email já pode estar em uso.', 'error');
+                }
+            } catch (erro) {
+                console.error(erro);
+                showMessage('Erro de conexão. Certifique-se de que o servidor back-end está rodando.', 'error');
             }
-
-            if (cep.length !== 8) {
-                showMessage('Informe um CEP válido com 8 dígitos.', 'error');
-                return;
-            }
-
-            if (!street) {
-                showMessage('Informe a rua via CEP ou preencha manualmente.', 'error');
-                return;
-            }
-
-            if (!noNumber && !number) {
-                showMessage('Informe o número ou marque S/ número.', 'error');
-                return;
-            }
-
-            users.push({
-                fullName,
-                firstName: fullName.split(' ')[0] || fullName,
-                email,
-                cpf,
-                password,
-                cep,
-                street,
-                number: noNumber ? 'S/N' : number,
-                noNumber,
-                history: []
-            });
-            saveUsers(users);
-            showMessage('Cadastro concluído! Redirecionando para login...', 'success');
-
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1800);
         });
-        function togglePassword(inputId, iconContainer) {
-  const input = document.getElementById(inputId);
-  if (!input) return;
-
-  const icon = iconContainer.querySelector('i');
-
-  if (input.type === 'password') {
-    input.type = 'text';
-    icon.classList.remove('fa-eye');
-    icon.classList.add('fa-eye-slash');
-  } else {
-    input.type = 'password';
-    icon.classList.remove('fa-eye-slash');
-    icon.classList.add('fa-eye');
-  }
-}
     </script>
 </body>
 </html>

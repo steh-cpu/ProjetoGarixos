@@ -6,68 +6,26 @@
     let trucks = []; // Array de caminhões
 
     // ========== VERIFICAÇÃO DE SESSÃO ==========
-    function getUsers() {
-      const saved = localStorage.getItem('garinxoUsers');
-      return saved ? JSON.parse(saved) : [];
-    }
-
+// ========== VERIFICAÇÃO DE SESSÃO COM API ==========
     function getCurrentUser() {
-      const cpf = localStorage.getItem(sessionKey);
-      if (!cpf) return null;
-      const users = getUsers();
-      return users.find(entry => entry.cpf === cpf) || null;
-    }
-
-    function saveCurrentUser(updatedUser) {
-      const users = getUsers();
-      const index = users.findIndex(entry => entry.cpf === updatedUser.cpf);
-      if (index >= 0) {
-        users[index] = updatedUser;
-      } else {
-        users.push(updatedUser);
+      const userStr = localStorage.getItem(sessionKey); // Pega o JSON salvo no login
+      if (!userStr) return null;
+      try {
+        return JSON.parse(userStr); // Devolve o objeto { id, nome, email, perfil }
+      } catch (e) {
+        return null;
       }
-      localStorage.setItem('garinxoUsers', JSON.stringify(users));
     }
 
     function getFirstName(fullName) {
       return fullName ? fullName.trim().split(' ')[0] : 'Usuário';
     }
 
-    function getCurrentUserHistory() {
-      const user = getCurrentUser();
-      return (user && Array.isArray(user.history)) ? user.history : [];
-    }
-
-    function renderHistorico() {
-      const history = getCurrentUserHistory();
-      const body = document.getElementById('historicoBody');
-      if (!body) return;
-
-      if (history.length === 0) {
-        body.innerHTML = `
-          <tr id="historicoEmpty">
-            <td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">
-              Nenhuma solicitação de coleta registrada ainda.
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      body.innerHTML = history.map(item => `
-        <tr>
-          <td>${item.date}</td>
-          <td>${item.time}</td>
-          <td>${item.local}</td>
-          <td><span class="status-badge ${item.status === 'Concluído' ? 'completed' : 'pending'}">${item.status === 'Concluído' ? '✅ Concluído' : '⏳ ${item.status}'}</span></td>
-        </tr>
-      `).join('');
-    }
-
     function updateHeaderUser() {
       const userLink = document.getElementById('userLink');
       const logoutLink = document.getElementById('logoutLink');
       const user = getCurrentUser();
+      
       if (!user) {
         if (userLink) {
           userLink.textContent = 'Entrar';
@@ -78,15 +36,17 @@
       }
 
       if (userLink) {
-        userLink.textContent = getFirstName(user.fullName || user.name || 'Usuário');
+        // Agora usamos user.nome porque é assim que vem do PostgreSQL
+        userLink.textContent = getFirstName(user.nome); 
         userLink.href = '#';
       }
       if (logoutLink) logoutLink.style.display = 'inline-block';
     }
 
     function verifySession() {
-      const cpf = localStorage.getItem(sessionKey);
-      if (!cpf) {
+      const user = getCurrentUser();
+      // Se não houver usuário logado válido, joga de volta pro login
+      if (!user) {
         window.location.href = 'index.html';
         return;
       }
@@ -205,37 +165,81 @@ function showNotificationToast() {
       }
     });
 
-    // ========== MODAIS ==========
-    // Funções para abrir/fechar todos os modais
-    function renderHistorico() {
+// ========== HISTÓRICO CONECTADO À API ==========
+    async function renderHistorico() {
       const historyBody = document.getElementById('historicoBody');
+      if (!historyBody) return;
+      
       const user = getCurrentUser();
-      historyBody.innerHTML = '';
+      if (!user) return;
 
-      if (!user || !Array.isArray(user.history) || user.history.length === 0) {
+      // Exibe uma mensagem visual de carregamento enquanto o fetch responde
+      historyBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:2rem; color:var(--text-muted);">Carregando histórico...</td></tr>';
+
+      try {
+        const resposta = await fetch('http://localhost:3000/api/solicitacoes');
+        if (!resposta.ok) throw new Error('Erro ao buscar dados do servidor');
+        
+        const todasSolicitacoes = await resposta.json();
+        
+        // Filtra no front-end para garantir que o cidadão veja apenas os seus próprios pedidos
+        const minhasSolicitacoes = todasSolicitacoes.filter(item => item.usuario_id === user.id);
+
+        historyBody.innerHTML = '';
+
+        if (minhasSolicitacoes.length === 0) {
+          historyBody.innerHTML = `
+            <tr>
+              <td colspan="4" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma solicitação de coleta registrada ainda.</td>
+            </tr>
+          `;
+          return;
+        }
+
+        // Alimenta a tabela dinamicamente
+        minhasSolicitacoes.forEach(item => {
+          const dataCriacao = new Date(item.createdAt);
+          const dataFormatada = dataCriacao.toLocaleDateString('pt-BR');
+          const horaFormatada = dataCriacao.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          
+          // Captura os dados do Eager Loading (LEFT JOIN) que o Sequelize gerou
+          const localFormatado = item.Endereco 
+            ? `${item.Endereco.logradouro}, ${item.Endereco.numero} - ${item.Endereco.bairro}`
+            : 'Endereço não identificado';
+
+          // Mapeia e estiliza as badges de status vindas do ENUM do banco
+          const statusLower = item.status ? item.status.toLowerCase() : 'pendente';
+          let statusClass = '';
+          let statusTexto = '⏳ Pendente';
+
+          if (statusLower === 'concluido' || statusLower === 'concluído') {
+            statusClass = 'completed';
+            statusTexto = '✅ Concluído';
+          } else if (statusLower === 'em_andamento') {
+            statusTexto = '🚛 Em Andamento';
+          }
+
+          historyBody.innerHTML += `
+            <tr>
+              <td>${dataFormatada}</td>
+              <td>${horaFormatada}</td>
+              <td>${localFormatado} <small style="display:block; color:var(--text-muted);">${item.tipo_lixo}</small></td>
+              <td><span class="status-badge ${statusClass}">${statusTexto}</span></td>
+            </tr>
+          `;
+        });
+      } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
         historyBody.innerHTML = `
           <tr>
-            <td colspan="4" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma solicitação de coleta registrada ainda.</td>
+            <td colspan="4" style="text-align:center; color:red; padding: 2rem;">Erro ao conectar com a API de histórico.</td>
           </tr>
         `;
-        return;
       }
-
-      user.history.forEach(item => {
-        const statusClass = item.status === 'Concluído' ? 'completed' : '';
-        historyBody.innerHTML += `
-          <tr>
-            <td>${item.date}</td>
-            <td>${item.time}</td>
-            <td>${item.local}</td>
-            <td><span class="status-badge ${statusClass}">${item.statusIcon || (item.status === 'Concluído' ? '✅' : '⌛')} ${item.status}</span></td>
-          </tr>
-        `;
-      });
     }
 
     function openHistorico() {
-      renderHistorico();
+      renderHistorico(); // Dispara o carregamento assíncrono da API
       document.getElementById('historicoModal').classList.add('open');
       document.getElementById('historicoModal').setAttribute('aria-hidden', 'false');
     }
@@ -558,43 +562,58 @@ function stopTruckAtTrash(truckData, trash) {
     }
 
     // ========== FORMULÁRIOS ==========
-    document.getElementById('solicitacaoForm').addEventListener('submit', (e) => {
+// ========== FORMULÁRIOS ==========
+    document.getElementById('solicitacaoForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const tipoLixo = document.getElementById('tipoLixo').value;
-      const endereco = document.getElementById('endereco').value.trim();
-      const nomeSolicitacao = document.getElementById('nomeSolicitacao').value.trim();
-      const cpfSolicitacao = document.getElementById('cpfSolicitacao').value.trim();
+      const enderecoInput = document.getElementById('endereco').value.trim();
 
-      if (!tipoLixo || !endereco || !nomeSolicitacao || !cpfSolicitacao) {
-        alert('Por favor, preencha todos os campos da solicitação.');
+      if (!tipoLixo || !enderecoInput) {
+        alert('Por favor, preencha o tipo de lixo e o endereço da solicitação.');
         return;
       }
 
       const user = getCurrentUser();
       if (!user) {
         alert('Você precisa estar logado para fazer uma solicitação.');
-        closeSolicitacao();
+        window.location.href = 'index.html';
         return;
       }
 
-      const now = new Date();
-      const entry = {
-        date: now.toLocaleDateString('pt-BR'),
-        time: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        local: endereco,
-        type: tipoLixo,
-        status: 'Pendente'
-      };
+      // Formata a string para bater com o ENUM do banco (ex: "Entulho" -> "ENTULHO")
+      const tipoLixoFormatado = tipoLixo.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
-      user.history = Array.isArray(user.history) ? user.history : [];
-      user.history.unshift(entry);
-      saveCurrentUser(user);
-      renderHistorico();
+      try {
+        // Envia a solicitação para a API do back-end
+        const resposta = await fetch('http://localhost:3000/api/solicitacoes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario_id: user.id, // O ID real do cidadão logado
+            endereco_id: 1, // Fixo temporariamente até integrarmos o seletor de endereços do banco
+            veiculo_id: 1,  // Fixo temporariamente (simula o caminhão alocado)
+            tipo_lixo: tipoLixoFormatado,
+            status: 'PENDENTE'
+          })
+        });
 
-      alert('Solicitação de coleta registrada com sucesso!');
-      closeSolicitacao();
-      document.getElementById('solicitacaoForm').reset();
+        if (resposta.ok) {
+          alert('✅ Solicitação de coleta registrada com sucesso!');
+          closeSolicitacao();
+          document.getElementById('solicitacaoForm').reset();
+          
+          // Por enquanto chamamos a renderização local apenas para não dar erro na tela.
+          // Na próxima etapa, atualizaremos esta função para ler do banco de dados!
+          renderHistorico(); 
+        } else {
+          const erro = await resposta.json();
+          alert('Erro ao registrar coleta: ' + (erro.mensagem || 'Verifique se o tipo de lixo é válido.'));
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro de conexão. Certifique-se de que o servidor Node.js (back-end) está ligado.');
+      }
     });
 
     document.getElementById('cadastroEnderecoForm').addEventListener('submit', (e) => {

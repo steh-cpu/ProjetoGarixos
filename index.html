@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garixos</title>
+    <title>Garixos - Login</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -19,25 +19,21 @@
 
             <form id="loginForm">
                 <div>
-                    <label for="cpfLogin">CPF</label>
-                    <input id="cpfLogin" type="text" placeholder="000.000.000-00" maxlength="14" autocomplete="username" required>
+                    <label for="emailLogin">Email</label>
+                    <input id="emailLogin" type="email" placeholder="seu@email.com" autocomplete="username" required>
                 </div>
 
                 <div>
                     <label for="passwordLogin">Senha</label>
                     <div class="password-wrapper">
-  <input type="password" id="passwordLogin" placeholder="Digite sua senha">
-
-  <span class="toggle-password"
-      onclick="togglePassword('passwordLogin', this)">
-      <i class="fa-solid fa-eye"></i>
-</span>
-</div>
+                        <input type="password" id="passwordLogin" placeholder="Digite sua senha" required>
+                        <span class="toggle-password" onclick="togglePassword('passwordLogin', this)">
+                            <i class="fa-solid fa-eye"></i>
+                        </span>
+                    </div>
                 </div>
-                <p class="forgot-password"
-   onclick="openForgotPasswordModal()">
-   Esqueceu a senha?
-</p>
+                
+                <p class="forgot-password" onclick="openForgotPasswordModal()">Esqueceu a senha?</p>
 
                 <button type="submit" class="primary-btn">Entrar</button>
             </form>
@@ -53,182 +49,106 @@
 
         <section class="hero-panel">
             <h2>Seu portal municipal moderno</h2>
-            <p>Use seu CPF para acessar o painel e acompanhar serviços. Suas informações estão seguras conosco.</p>
+            <p>Use seu email para acessar o painel e acompanhar serviços. Suas informações estão seguras conosco.</p>
         </section>
     </div>
+
     <div id="forgotPasswordModal" class="modal">
-  <div class="modal-content">
-
-    <button class="close-btn"
-            onclick="closeForgotPasswordModal()">
-      &times;
-    </button>
-
-    <h2>Recuperar senha</h2>
-
-    <p>Digite o email cadastrado.</p>
-
-    <input type="email"
-           id="recoverEmail"
-           placeholder="Seu email">
-
-    <button class="primary-btn"
-            onclick="recoverPassword()">
-      Enviar senha
-    </button>
-
-  </div>
-</div>
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeForgotPasswordModal()">&times;</button>
+            <h2>Recuperar senha</h2>
+            <p>Digite o email cadastrado.</p>
+            <input type="email" id="recoverEmail" placeholder="Seu email">
+            <button class="primary-btn" onclick="recoverPassword()">Enviar senha</button>
+        </div>
+    </div>
 
     <script>
-        // Chave do localStorage onde os usuários são armazenados
-        const storageKey = 'garinxoUsers';
         const sessionKey = 'garinxoCurrentUser';
 
-        // Função para ler os usuários do localStorage
-        function getUsers() {
-            const saved = localStorage.getItem(storageKey);
-            return saved ? JSON.parse(saved) : [];
-        }
-
-        // Função para gravar usuários no localStorage
-        function saveUsers(users) {
-            localStorage.setItem(storageKey, JSON.stringify(users));
-        }
-
-        // Normaliza o CPF removendo caracteres não numéricos
-        function normalizeCPF(value) {
-            return value.replace(/\D/g, '');
-        }
-
-        // Exibe mensagens de sucesso ou erro na interface
         function showMessage(text, type = 'error') {
             const box = document.getElementById('loginMessage');
             box.textContent = text;
             box.className = `message-box ${type}`;
             box.style.display = 'block';
-            setTimeout(() => {
-                box.style.display = 'none';
-            }, 5000);
+            setTimeout(() => { box.style.display = 'none'; }, 5000);
         }
 
-        // Máscara visual para CPF durante a digitação
-        function maskCPF(value) {
-            const digits = normalizeCPF(value);
-            const part1 = digits.slice(0, 3);
-            const part2 = digits.slice(3, 6);
-            const part3 = digits.slice(6, 9);
-            const part4 = digits.slice(9, 11);
-            let masked = part1;
-            if (part2) masked += '.' + part2;
-            if (part3) masked += '.' + part3;
-            if (part4) masked += '-' + part4;
-            return masked;
+        function togglePassword(inputId, iconContainer) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const icon = iconContainer.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
         }
 
-        document.getElementById('cpfLogin').addEventListener('input', event => {
-            event.target.value = maskCPF(event.target.value);
-        });
-
-        document.getElementById('loginForm').addEventListener('submit', event => {
+        // ==========================================
+        // LÓGICA DE LOGIN COM A API (BACK-END)
+        // ==========================================
+        document.getElementById('loginForm').addEventListener('submit', async event => {
             event.preventDefault();
-            const cpf = normalizeCPF(document.getElementById('cpfLogin').value);
+            
+            const email = document.getElementById('emailLogin').value.trim();
             const password = document.getElementById('passwordLogin').value.trim();
 
-            if (cpf.length !== 11) {
-                showMessage('Informe um CPF válido com 11 dígitos.', 'error');
+            if (!email || !password) {
+                showMessage('Por favor, preencha o email e a senha.', 'error');
                 return;
             }
 
-            if (!password) {
-                showMessage('Informe sua senha.', 'error');
-                return;
+            try {
+                // Envia as credenciais para a rota de login da API
+                const resposta = await fetch('http://localhost:3000/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, senha: password })
+                });
+
+                if (resposta.ok) {
+                    const dados = await resposta.json();
+                    
+                    // Salva os dados do usuário (id, nome, email) no localStorage
+                    localStorage.setItem(sessionKey, JSON.stringify(dados.usuario));
+                    
+                    showMessage('Login aprovado! Entrando...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'principal.html';
+                    }, 1500);
+                } else {
+                    const erro = await resposta.json();
+                    showMessage(erro.mensagem || 'Email ou senha incorretos.', 'error');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showMessage('Erro ao conectar com o servidor. O back-end está ligado?', 'error');
             }
-
-            const users = getUsers();
-            const user = users.find(entry => entry.cpf === cpf);
-
-            if (!user) {
-                showMessage('CPF não encontrado. Crie uma conta primeiro.', 'error');
-                return;
-            }
-
-            if (user.password !== password) {
-                showMessage('Senha incorreta. Verifique e tente novamente.', 'error');
-                return;
-            }
-
-            // Salva o usuário atual e redireciona para a página principal
-            localStorage.setItem(sessionKey, cpf);
-            window.location.href = 'principal.html';
         });
 
         document.getElementById('gmailBtn').addEventListener('click', () => {
-            showMessage('Login com Gmail não está disponível neste protótipo.', 'success');
+            showMessage('Login com Gmail em desenvolvimento.', 'success');
         });
 
         document.getElementById('facebookBtn').addEventListener('click', () => {
-            showMessage('Login com Facebook não está disponível neste protótipo.', 'success');
+            showMessage('Login com Facebook em desenvolvimento.', 'success');
         });
-        function togglePassword(inputId, iconContainer) {
-  const input = document.getElementById(inputId);
-  if (!input) return;
 
-  const icon = iconContainer.querySelector('i');
-
-  if (input.type === 'password') {
-    input.type = 'text';
-    icon.classList.remove('fa-eye');
-    icon.classList.add('fa-eye-slash');
-  } else {
-    input.type = 'password';
-    icon.classList.remove('fa-eye-slash');
-    icon.classList.add('fa-eye');
-  }
-}
-emailjs.init("ZU8Cn-oC4L0bnD_M8");
-
-function openForgotPasswordModal() {
-  document.getElementById("forgotPasswordModal").classList.add("open");
-}
-
-function closeForgotPasswordModal() {
-  document.getElementById("forgotPasswordModal").classList.remove("open");
-}
-
-function recoverPassword() {
-  const email = document.getElementById("recoverEmail").value.trim();
-
-  if (!email) {
-    alert("Digite seu email.");
-    return;
-  }
-
-  const users = JSON.parse(localStorage.getItem("garinxoUsers")) || [];
-  const user = users.find(u => u.email === email);
-
-  if (!user) {
-    alert("Email não encontrado.");
-    return;
-  }
-
-  emailjs.send(
-    "service_qjal7z5",
-    "template_380ivd7",
-    {
-      name: user.fullName,
-      password: user.password,
-      email: email
-    }
-  )
-  .then(() => {
-    alert("Senha enviada para seu email.");
-    closeForgotPasswordModal();
-  })
-  .catch(() => {
-    alert("Erro ao enviar email.");
-  });
-}
+        // Recuperação de senha visual
+        emailjs.init("ZU8Cn-oC4L0bnD_M8");
+        function openForgotPasswordModal() { document.getElementById("forgotPasswordModal").classList.add("open"); }
+        function closeForgotPasswordModal() { document.getElementById("forgotPasswordModal").classList.remove("open"); }
+        function recoverPassword() {
+            const email = document.getElementById("recoverEmail").value.trim();
+            if (!email) { alert("Digite seu email."); return; }
+            alert("A funcionalidade de email será integrada com o banco de dados em breve.");
+            closeForgotPasswordModal();
+        }
     </script>
 </body>
 </html>

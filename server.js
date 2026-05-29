@@ -1,8 +1,11 @@
 const express = require('express');
 const app = express();
+const cors = require('cors');
 
 // Middleware para o Express entender arquivos JSON recebidos no body (Postman)
 app.use(express.json());
+app.use(cors()); // Permite que o seu front-end converse com a API
+
 
 // Importando o NOSSO repositório do Garixos
 const empresaRepo = require('./repositories/empresaRepository.js'); // Ajuste o caminho da pasta se você salvou em outro lugar
@@ -183,6 +186,39 @@ app.delete('/api/usuarios/:id', async (req, res) => {
   }
 });
 
+
+// ==========================================
+// ROTA DE AUTENTICAÇÃO (LOGIN)
+// ==========================================
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, senha } = req.body;
+    const { Usuario } = require('./models');
+
+    // Procura o utilizador no banco de dados com o email e senha exatos
+    const usuario = await Usuario.findOne({ 
+      where: { email: email, senha: senha } 
+    });
+
+    if (usuario) {
+      // Se encontrou, devolve os dados (sem a senha, por segurança)
+      res.status(200).json({ 
+        mensagem: 'Login bem-sucedido', 
+        usuario: { 
+          id: usuario.id, 
+          nome: usuario.nome, 
+          email: usuario.email, 
+          perfil: usuario.perfil 
+        } 
+      });
+    } else {
+      res.status(401).json({ mensagem: 'Email ou senha inválidos' });
+    }
+  } catch (error) {
+    console.error('Erro no login:', error);
+    res.status(500).json({ mensagem: 'Erro interno no servidor' });
+  }
+});
 // ==========================================
 // ROTA GET: Listar os Endereços de um Utilizador
 // ==========================================
@@ -453,29 +489,37 @@ app.get('/api/solicitacoes', async (req, res) => {
   }
 });
 
-// 2. POST: O Cidadão abre um novo pedido de recolha
+// ==========================================
+// ROTA DE SOLICITAÇÕES DE COLETA
+// ==========================================
 app.post('/api/solicitacoes', async (req, res) => {
   try {
-    const { usuario_id, endereco_id, tipo_lixo, data_solicitacao } = req.body;
+    const { usuario_id, tipo_lixo, status } = req.body; // <-- Repare que recebemos tipo_lixo
+    const { SolicitacaoColeta, Endereco } = require('./models');
+    
+    // 1. O Back-end procura automaticamente o endereço que pertence a este usuário
+    const enderecoDoUsuario = await Endereco.findOne({ 
+      where: { usuario_id: usuario_id } 
+    });
 
-    if (!usuario_id || !endereco_id) {
-      return res.status(400).json({ mensagem: 'O ID do utilizador e do endereço são obrigatórios!' });
+    if (!enderecoDoUsuario) {
+      return res.status(400).json({ mensagem: 'Nenhum endereço cadastrado para este usuário.' });
     }
 
-    const novaSolicitacao = await solicitacaoRepo.salvarSolicitacao({ 
-      usuario_id, 
-      endereco_id, 
-      tipo_lixo,
-      data_solicitacao
+    // 2. Cria a solicitação usando o ID real do endereço encontrado
+    const novaSolicitacao = await SolicitacaoColeta.create({
+      usuario_id: usuario_id,
+      endereco_id: enderecoDoUsuario.id, 
+      tipo_lixo: tipo_lixo, // <-- AQUI ESTAVA O ERRO! Mudei de tipoLixo para tipo_lixo
+      status: status || 'PENDENTE'
     });
-    
+
     res.status(201).json(novaSolicitacao);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensagem: 'Erro interno ao criar a solicitação.' });
+    console.error('Erro ao salvar solicitação:', error);
+    res.status(500).json({ mensagem: 'Erro interno no servidor' });
   }
 });
-
 // 3. PUT: A Empresa atualiza o estado do pedido (ex: aloca um veículo)
 app.put('/api/solicitacoes/:id', async (req, res) => {
   try {
