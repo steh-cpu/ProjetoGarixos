@@ -6,10 +6,14 @@
   <title>Garixos - Principal</title>
   <link rel="stylesheet" href="./css/styles.css">
   <link rel="stylesheet" href="./css/features.css">
+  <link rel="stylesheet" href="./css/tutorial.css">
+  <link rel="stylesheet" href="./css/assistant.css">
   <!-- Leaflet.js para mapa real -->
   <link rel="icon" href="./assets/logoprincipal.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="./js/tutorial.js"></script>
+  <script src="./js/assistant.js"></script>
 </head>
 <body>
   <!-- ========== HEADER ========== -->
@@ -302,50 +306,17 @@
       </div>
     </div>
 
-    <!-- Modal: Assistente Virtual / Modo Idoso -->
-    <div id="assistantModal" class="modal" role="dialog" aria-labelledby="assistantTitle" aria-hidden="true">
-      <div class="modal-content modal-assistant">
-        <button class="close-btn" onclick="closeAssistant()" aria-label="Fechar assistente">&times;</button>
-        <h2 id="assistantTitle">Olá! Sou a Assistente Virtual</h2>
-        <div class="modal-body">
-          <div id="assistantContent">
-            <p style="font-size: 1.05rem; margin-bottom: 1rem;">Vamos começar! Qual é o seu nome completo?</p>
-            <input type="text" id="assistantName" placeholder="Digite seu nome" class="form-input">
-            <p style="font-size: 1.05rem; margin: 1.5rem 0 1rem;">Qual é sua data de nascimento?</p>
-            <input type="date" id="assistantBirthDate" class="form-input">
-            <button onclick="processAssistantData()" class="primary-btn" style="margin-top: 1.5rem; width: 100%;">Continuar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
-  <div id="ageCheckModal" class="modal age-modal" aria-hidden="true">
-  <div class="modal-content age-modal-content">
-    <button class="close-btn" onclick="closeAgeCheck()" aria-label="Fechar">&times;</button>
-
-    <h2>Antes de continuar</h2>
-    <p>Informe sua data de nascimento para verificarmos se deseja ativar o modo idoso.</p>
-
-    <input type="date" id="ageBirthDate" class="form-input">
-
-    <div class="age-actions">
-      <button class="primary-btn" onclick="checkUserAge()">Continuar</button>
-      <button class="cancel-btn" onclick="closeAgeCheck()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
 <div id="elderlyConfirmModal" class="modal age-modal" aria-hidden="true">
   <div class="modal-content age-modal-content">
     <button class="close-btn" onclick="closeElderlyConfirm()" aria-label="Fechar">&times;</button>
 
-    <h2>Modo idoso disponível</h2>
-    <p>Identificamos que você tem mais de 60 anos. Deseja ativar o modo idoso?</p>
+    <h2>Tutorial concluído</h2>
+    <p>Você finalizou o primeiro tutorial. O modo idoso pode continuar ativo para deixar a navegação mais simples.</p>
 
     <div class="age-actions">
-      <button class="primary-btn" onclick="confirmElderlyMode()">Sim</button>
-      <button class="cancel-btn" onclick="closeElderlyConfirm()">Cancelar</button>
+      <button class="primary-btn" onclick="confirmElderlyMode()">Entendi</button>
+      <button class="cancel-btn" onclick="closeElderlyConfirm()">Fechar</button>
     </div>
   </div>
 </div>

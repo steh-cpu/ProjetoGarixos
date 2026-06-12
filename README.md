@@ -25,6 +25,8 @@ A interface foi estruturada para ser simples e intuitiva para o usuário final:
 ## ⚙️ Camada Back-end e Banco de Dados
 O backend é construído em Node.js com a ORM Sequelize para gerenciar toda a operação do sistema de coleta. A arquitetura suporta perfis de acesso, dividindo as jornadas entre o Portal do Cidadão e o Painel Administrativo Interno.
 
+O assistente virtual agora é servido pelo back-end em `/api/assistant/chat`. A chave do Gemini não fica mais no front-end; ela deve ser configurada no arquivo `.env` com a variável `GEMINI_API_KEY`.
+
 ### Estrutura de Diretórios
 - `package.json`: Dependências do Node e scripts.
 - `server.js`: Ponto de entrada da API RESTful com Express.
@@ -145,29 +147,30 @@ erDiagram
 ```   
 
 ## 🚀 Instalação e Uso
- 1. **Clone o repositório:**
-   ```bash
-   git clone [https://github.com/steh-cpu/ProjetoGarixos.git](https://github.com/steh-cpu/ProjetoGarixos.git)
-   cd garixos
-   
-   ```
- 2. **Instale as dependências:**
-   ```bash
-   npm install
-   
-   ```
- 3. **Configure o Banco de Dados:**
-   Ajuste o arquivo config/config.json com as credenciais do seu banco PostgreSQL local.
- 4. **Execute as Migrações para criar as tabelas:**
-   ```bash
-   npx sequelize-cli db:migrate
-   
-   ```
- 5. **Carregue dados iniciais (Opcional):**
-   ```bash
-   npx sequelize-cli db:seed:all
-   
-   ```
+1. **Clone o repositório:**
+  ```bash
+  git clone [https://github.com/steh-cpu/ProjetoGarixos.git](https://github.com/steh-cpu/ProjetoGarixos.git)
+  cd garixos
+  ```
+2. **Instale as dependências:**
+  ```bash
+  npm install
+  ```
+3. **Configure as variáveis de ambiente:**
+  Crie um arquivo `.env` com o conteúdo abaixo:
+  ```bash
+  GEMINI_API_KEY=sua_chave_do_gemini
+  ```
+4. **Configure o Banco de Dados:**
+  Ajuste o arquivo `config/config.json` com as credenciais do seu banco PostgreSQL local.
+5. **Execute as Migrações para criar as tabelas:**
+  ```bash
+  npx sequelize-cli db:migrate
+  ```
+6. **Carregue dados iniciais (Opcional):**
+  ```bash
+  npx sequelize-cli db:seed:all
+  ```
 ## 📌 Observações Finais
  * O projeto usa sequelize e pg para conectar ao PostgreSQL.
  * O arquivo models/index.js contém a inicialização do Sequelize e a importação automática de todos os modelos.

@@ -36,6 +36,11 @@
                 </div>
 
                 <div>
+                    <label for="birthDateCreate">Data de nascimento</label>
+                    <input id="birthDateCreate" type="date" required>
+                </div>
+
+                <div>
                     <label for="passwordCreate">Criar senha</label>
                     <div class="password-wrapper">
                         <input type="password" id="passwordCreate" placeholder="Crie sua senha" required>
@@ -61,6 +66,7 @@
                             <i class="fa-solid fa-eye"></i>
                         </span>
                     </div>
+                    <small id="confirmPasswordFeedback" class="password-feedback" aria-live="polite"></small>
                 </div>
 
                 <div>
@@ -97,18 +103,28 @@
 
     <script>
         // Funções de formatação e Validação Visuais
+        let registerMessageTimeoutId = null;
+
         function normalizeCPF(value) {
             return value.replace(/\D/g, '');
         }
 
-        function showMessage(text, type = 'error') {
+        function showMessage(text, type = 'error', durationMs = 5000) {
             const box = document.getElementById('registerMessage');
             box.textContent = text;
             box.className = `message-box ${type}`;
             box.style.display = 'block';
-            setTimeout(() => {
-                box.style.display = 'none';
-            }, 5000);
+            if (registerMessageTimeoutId) {
+                clearTimeout(registerMessageTimeoutId);
+                registerMessageTimeoutId = null;
+            }
+
+            if (durationMs !== null) {
+                registerMessageTimeoutId = setTimeout(() => {
+                    box.style.display = 'none';
+                    registerMessageTimeoutId = null;
+                }, durationMs);
+            }
         }
 
         function validatePasswordChecklist(password) {
@@ -136,7 +152,25 @@
         }
 
         const passwordCreateInput = document.getElementById('passwordCreate');
+        const confirmPasswordInput = document.getElementById('confirmPasswordCreate');
+        const confirmPasswordFeedback = document.getElementById('confirmPasswordFeedback');
         const passwordChecklist = document.getElementById('passwordChecklist');
+
+        function validatePasswordConfirmation() {
+            const passwordsMatch = confirmPasswordInput.value === '' || passwordCreateInput.value === confirmPasswordInput.value;
+
+            if (passwordsMatch) {
+                confirmPasswordInput.setCustomValidity('');
+                confirmPasswordFeedback.textContent = '';
+                confirmPasswordFeedback.classList.remove('show');
+            } else {
+                confirmPasswordInput.setCustomValidity('As senhas não coincidem');
+                confirmPasswordFeedback.textContent = 'As senhas não coincidem';
+                confirmPasswordFeedback.classList.add('show');
+            }
+
+            return passwordsMatch;
+        }
 
         passwordCreateInput.addEventListener('focus', () => {
             passwordChecklist.classList.add('show');
@@ -148,6 +182,11 @@
 
         passwordCreateInput.addEventListener('input', () => {
             validatePasswordChecklist(passwordCreateInput.value);
+            validatePasswordConfirmation();
+        });
+
+        confirmPasswordInput.addEventListener('input', () => {
+            validatePasswordConfirmation();
         });
 
         function maskCPF(value) {
@@ -251,6 +290,7 @@
             const fullName = document.getElementById('fullNameCreate').value.trim();
             const email = document.getElementById('emailCreate').value.trim();
             const cpf = normalizeCPF(document.getElementById('cpfCreate').value);
+            const birthDate = document.getElementById('birthDateCreate').value;
             const password = document.getElementById('passwordCreate').value.trim();
             const confirmPassword = document.getElementById('confirmPasswordCreate').value.trim();
             const cep = normalizeCEP(document.getElementById('cepCreate').value);
@@ -262,6 +302,11 @@
             // Validações visuais locais
             if (cpf.length !== 11) {
                 showMessage('Informe um CPF válido com 11 dígitos.', 'error');
+                return;
+            }
+
+            if (!birthDate) {
+                showMessage('Informe sua data de nascimento.', 'error');
                 return;
             }
 
@@ -289,6 +334,7 @@
                         nome: fullName,
                         email: email,
                         senha: password,
+                        data_nascimento: birthDate,
                         perfil: 'CLIENTE'
                     })
                 });

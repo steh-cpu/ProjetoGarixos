@@ -1305,6 +1305,21 @@ body {
   padding-right: 48px !important;
 }
 
+.password-feedback {
+  display: block;
+  min-height: 1rem;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  color: #dc2626;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.password-feedback.show {
+  opacity: 1;
+}
+
 .toggle-password {
   position: absolute;
   right: 16px;

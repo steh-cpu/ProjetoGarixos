@@ -625,12 +625,112 @@ function stopTruckAtTrash(truckData, trash) {
 
     // ========== ASSISTENTE VIRTUAL / MODO IDOSO ==========
     document.getElementById('assistantFab').addEventListener('click', () => {
-  // Assistente virtual sem função por enquanto
-});
+      openAssistant();
+    });
+
+    function openAssistant() {
+      const modal = document.getElementById('assistantModal');
+      if (!modal) return;
+
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      closeAssistantOptions();
+
+      const nameInput = document.getElementById('assistantName');
+      const birthDateInput = document.getElementById('assistantBirthDate');
+
+      if (nameInput) nameInput.focus();
+      if (nameInput && !nameInput.value) nameInput.value = '';
+      if (birthDateInput && !birthDateInput.value) birthDateInput.value = '';
+    }
+
+    function startAssistantTutorial() {
+      closeAssistantOptions();
+      startSharedTutorial(false);
+    }
+
+    function activateElderlyModeFromAssistant() {
+      processAssistantData();
+    }
+
+    function disableElderlyMode() {
+      isElderly = false;
+      document.body.classList.remove('elderly-mode');
+
+      document.querySelectorAll('.elderly-highlight').forEach(el => {
+        el.classList.remove('elderly-highlight');
+      });
+
+      const overlay = document.getElementById('elderlyOverlay');
+      const tip = document.getElementById('elderlyTip');
+      const confirmModal = document.getElementById('elderlyConfirmModal');
+
+      if (overlay) overlay.remove();
+      if (tip) tip.remove();
+      if (confirmModal) {
+        confirmModal.classList.remove('open');
+        confirmModal.setAttribute('aria-hidden', 'true');
+      }
+
+      speak('Modo idoso desativado.');
+      alert('Modo idoso desativado.');
+      closeAssistantOptions();
+    }
+
+    function openSupportFromAssistant() {
+      closeAssistantOptions();
+
+      const supportSection = document.getElementById('support');
+      if (supportSection) {
+        supportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      speak('Você foi direcionado para a área de suporte.');
+    }
+
+    function startSharedTutorial(openConfirmAfterFinish = false) {
+      if (openConfirmAfterFinish) {
+        pendingOpenElderlyConfirm = true;
+      }
+
+      if (typeof window.GarixosTutorial === 'undefined') {
+        alert('O tutorial ainda não está disponível nesta tela.');
+        return;
+      }
+
+      if (openConfirmAfterFinish && !isElderly) {
+        isElderly = true;
+        document.body.classList.add('elderly-mode');
+      }
+
+      window.GarixosTutorial.start();
+      speak('Vamos iniciar o tutorial.');
+    }
+
+    function toggleAssistantOptions() {
+      const menu = document.getElementById('assistantOptionsMenu');
+      const button = document.getElementById('assistantMoreOptionsBtn');
+      if (!menu || !button) return;
+
+      const isOpen = menu.classList.toggle('open');
+      menu.setAttribute('aria-hidden', String(!isOpen));
+      button.setAttribute('aria-expanded', String(isOpen));
+    }
+
+    function closeAssistantOptions() {
+      const menu = document.getElementById('assistantOptionsMenu');
+      const button = document.getElementById('assistantMoreOptionsBtn');
+      if (!menu || !button) return;
+
+      menu.classList.remove('open');
+      menu.setAttribute('aria-hidden', 'true');
+      button.setAttribute('aria-expanded', 'false');
+    }
 
     function closeAssistant() {
       document.getElementById('assistantModal').classList.remove('open');
       document.getElementById('assistantModal').setAttribute('aria-hidden', 'true');
+      closeAssistantOptions();
     }
 
     function processAssistantData() {
@@ -644,12 +744,20 @@ function stopTruckAtTrash(truckData, trash) {
 
       const birth = new Date(birthDate);
       const today = new Date();
-      const age = today.getFullYear() - birth.getFullYear();
+
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+
+      pendingElderlyName = name;
+      pendingElderlyAge = age;
 
       if (age >= 60) {
         activateElderlyMode(name, age);
       } else {
-        closeAssistant();
         alert(`Bem-vindo, ${name}!`);
       }
     }
@@ -657,10 +765,10 @@ function stopTruckAtTrash(truckData, trash) {
     function activateElderlyMode(name, age) {
   isElderly = true;
   document.body.classList.add('elderly-mode');
-  closeAssistant();
 
-  speak(`Bem-vindo, ${name}. O modo idoso foi ativado. Vou te guiar pelo site passo a passo.`);
-  startElderlyTutorial();
+  pendingOpenElderlyConfirm = true;
+  speak(`Bem-vindo, ${name}. O modo idoso foi ativado. Vou te guiar pelo tutorial principal.`);
+  startSharedTutorial(true);
 }
 
 function speak(text) {
@@ -676,98 +784,16 @@ function speak(text) {
   window.speechSynthesis.speak(voice);
 }
 
-const elderlySteps = [
-  {
-    selector: '.header-search',
-    text: 'Aqui você pode buscar endereço, ponto de coleta ou serviço.'
-  },
-  {
-    selector: '.notification-bell',
-    text: 'Aqui ficam suas notificações sobre coleta e avisos importantes.'
-  },
-  {
-    selector: '.feature-card:nth-child(1)',
-    text: 'Aqui você consulta o histórico das suas solicitações.'
-  },
-  {
-    selector: '.feature-card:nth-child(2)',
-    text: 'Aqui você abre o mapa em tempo real.'
-  },
-  {
-    selector: '.feature-card:nth-child(3)',
-    text: 'Aqui você pode solicitar uma coleta de resíduos.'
-  },
-  {
-    selector: '#support',
-    text: 'Aqui embaixo você pode pedir suporte ou enviar feedback.'
-  }
-];
+let pendingOpenElderlyConfirm = false;
 
-let elderlyStepIndex = 0;
+window.addEventListener('garixos-tutorial-end', () => {
+  if (!pendingOpenElderlyConfirm) return;
 
-function startElderlyTutorial() {
-  elderlyStepIndex = 0;
-
-  const overlay = document.createElement('div');
-  overlay.className = 'elderly-overlay';
-  overlay.id = 'elderlyOverlay';
-  document.body.appendChild(overlay);
-
-  const tip = document.createElement('div');
-  tip.className = 'elderly-tip';
-  tip.id = 'elderlyTip';
-  document.body.appendChild(tip);
-
-  showElderlyStep();
-}
-
-function showElderlyStep() {
-  document.querySelectorAll('.elderly-highlight').forEach(el => {
-    el.classList.remove('elderly-highlight');
-  });
-
-  const step = elderlySteps[elderlyStepIndex];
-  const element = document.querySelector(step.selector);
-  const tip = document.getElementById('elderlyTip');
-
-  if (!step || !element || !tip) {
-    finishElderlyTutorial();
-    return;
-  }
-
-  element.classList.add('elderly-highlight');
-  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-  tip.innerHTML = `
-    <div>${step.text}</div>
-    <button onclick="nextElderlyStep()">Próximo passo</button>
-  `;
-
-  speak(step.text);
-}
-
-function nextElderlyStep() {
-  elderlyStepIndex++;
-
-  if (elderlyStepIndex >= elderlySteps.length) {
-    finishElderlyTutorial();
-    return;
-  }
-
-  showElderlyStep();
-}
+  pendingOpenElderlyConfirm = false;
+  openElderlyConfirm();
+});
 
 function finishElderlyTutorial() {
-  document.querySelectorAll('.elderly-highlight').forEach(el => {
-    el.classList.remove('elderly-highlight');
-  });
-
-  const overlay = document.getElementById('elderlyOverlay');
-  const tip = document.getElementById('elderlyTip');
-
-  if (overlay) overlay.remove();
-  if (tip) tip.remove();
-
   speak('Tutorial finalizado. O modo idoso continuará ativado.');
 }
 
@@ -839,54 +865,6 @@ function finishElderlyTutorial() {
 let pendingElderlyName = 'usuário';
 let pendingElderlyAge = 0;
 
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    openAgeCheck();
-  }, 700);
-});
-
-function openAgeCheck() {
-  const modal = document.getElementById('ageCheckModal');
-  if (!modal) return;
-
-  modal.classList.add('open');
-  modal.setAttribute('aria-hidden', 'false');
-}
-
-function closeAgeCheck() {
-  const modal = document.getElementById('ageCheckModal');
-  if (!modal) return;
-
-  modal.classList.remove('open');
-  modal.setAttribute('aria-hidden', 'true');
-}
-
-function checkUserAge() {
-  const birthDate = document.getElementById('ageBirthDate').value;
-
-  if (!birthDate) {
-    closeAgeCheck();
-    return;
-  }
-
-  const birth = new Date(birthDate);
-  const today = new Date();
-
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-    age--;
-  }
-
-  closeAgeCheck();
-
-  if (age >= 60) {
-    pendingElderlyAge = age;
-    openElderlyConfirm();
-  }
-}
-
 function openElderlyConfirm() {
   const modal = document.getElementById('elderlyConfirmModal');
   if (!modal) return;
@@ -906,7 +884,7 @@ function closeElderlyConfirm() {
 function confirmElderlyMode() {
   closeElderlyConfirm();
 
-  if (typeof activateElderlyMode === 'function') {
+  if (!isElderly && typeof activateElderlyMode === 'function') {
     activateElderlyMode(pendingElderlyName, pendingElderlyAge);
   }
 }

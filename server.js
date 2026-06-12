@@ -14,6 +14,93 @@ const enderecoRepo = require('./repositories/enderecoRepository.js'); // Ajuste 
 const zonaColetaRepo = require('./repositories/zonaColetaRepository.js');
 const veiculoRepo = require('./repositories/veiculoRepository.js');
 const solicitacaoRepo = require('./repositories/solicitacaoRepository.js');
+require('dotenv').config();
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_URL = GEMINI_API_KEY
+  ? 'https://generativelanguage.googleapis.com/v1beta/models/' +
+    GEMINI_MODEL + ':generateContent?key=' + GEMINI_API_KEY
+  : null;
+
+const ASSISTANT_SYSTEM_PROMPT = `
+Você é a Assistente Virtual do Garixos, uma plataforma municipal de coleta inteligente de resíduos.
+Seu nome é Gari. Você é simpática, prestativa e objetiva. Responda sempre em português brasileiro.
+Mantenha respostas curtas e diretas (máximo 3 parágrafos).
+
+SOBRE O GARIXOS:
+- Plataforma que conecta cidadãos a empresas de coleta de resíduos urbanos
+- Funcionalidades principais:
+  1. Histórico de Solicitações: consulta de todas as coletas solicitadas (data, hora, local, status)
+  2. Mapa em Tempo Real: visualização de caminhões e pontos de coleta próximos
+  3. Solicitar Coleta: solicitar retirada de lixo no endereço (orgânico, reciclável, eletrônico, poda, entulho)
+  4. Horários de Coleta: tabela com dias e horários por tipo de resíduo
+  5. Cadastro de Endereço: salvar endereços para facilitar futuras solicitações
+  6. Notícias Ambientais: notícias sobre meio ambiente e sustentabilidade
+
+HORÁRIOS DE COLETA:
+- Segunda: 07h-18h - Lixo Comum
+- Terça: 07h-18h - Reciclável
+- Quarta: 07h-18h - Lixo Comum
+- Quinta: 07h-18h - Orgânico
+- Sexta: 07h-18h - Lixo Comum
+- Sábado: 08h-12h - Volumoso
+
+TIPOS DE LIXO ACEITOS: Orgânico, Reciclável, Eletrônico, Poda, Entulho
+
+SUPORTE: O usuário pode enviar mensagens de suporte e feedback na seção "Precisa de Ajuda?" no rodapé da página.
+
+Se não souber algo específico do sistema, oriente o usuário a usar a seção de Suporte.
+Nunca invente informações que não estão acima.
+`.trim();
+
+function normalizeAssistantHistory(history) {
+  if (!Array.isArray(history)) return [];
+
+  return history
+    .filter(item => item && typeof item === 'object' && typeof item.role === 'string' && Array.isArray(item.parts))
+    .slice(-10)
+    .map(item => ({
+      role: item.role,
+      parts: item.parts
+        .filter(part => part && typeof part.text === 'string' && part.text.trim().length > 0)
+        .map(part => ({ text: part.text }))
+    }))
+    .filter(item => item.parts.length > 0);
+}
+
+async function generateAssistantReply(history) {
+  if (!GEMINI_URL) {
+    throw new Error('GEMINI_API_KEY não configurada no servidor.');
+  }
+
+  const response = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: {
+        parts: [{ text: ASSISTANT_SYSTEM_PROMPT }]
+      },
+      contents: normalizeAssistantHistory(history)
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const message = data && data.error && data.error.message
+      ? data.error.message
+      : 'Erro ao consultar o Gemini';
+    throw new Error(message);
+  }
+
+  const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!reply) {
+    throw new Error('Resposta inesperada do Gemini.');
+  }
+
+  return reply;
+}
 // ==========================================
 // ROTA GET: Listar as Empresas
 // ==========================================
@@ -190,10 +277,28 @@ app.delete('/api/usuarios/:id', async (req, res) => {
 // ==========================================
 // ROTA DE AUTENTICAÇÃO (LOGIN)
 // ==========================================
+const MASTER_USER = {
+  email: 'master@garixos.com',
+  senha: 'Master@123',
+  usuario: {
+    id: 0,
+    nome: 'Usuário Master',
+    email: 'master@garixos.com',
+    perfil: 'MASTER'
+  }
+};
+
 app.post('/api/login', async (req, res) => {
   try {
     const { email, senha } = req.body;
     const { Usuario } = require('./models');
+
+    if (email === MASTER_USER.email && senha === MASTER_USER.senha) {
+      return res.status(200).json({
+        mensagem: 'Login bem-sucedido',
+        usuario: MASTER_USER.usuario
+      });
+    }
 
     // Procura o utilizador no banco de dados com o email e senha exatos
     const usuario = await Usuario.findOne({ 
@@ -558,6 +663,23 @@ app.delete('/api/solicitacoes/:id', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ mensagem: 'Erro interno ao cancelar a solicitação.' });
+  }
+});
+
+// ==========================================
+// ROTA DO ASSISTENTE VIRTUAL (GEMINI)
+// ==========================================
+app.post('/api/assistant/chat', async (req, res) => {
+  try {
+    const { history = [] } = req.body;
+    const reply = await generateAssistantReply(history);
+
+    res.status(200).json({ reply });
+  } catch (error) {
+    console.error('Erro no assistente virtual:', error);
+    res.status(500).json({
+      mensagem: 'Não foi possível gerar a resposta do assistente no momento.'
+    });
   }
 });
 

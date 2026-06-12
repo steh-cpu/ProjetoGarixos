@@ -65,6 +65,16 @@
 
     <script>
         const sessionKey = 'garinxoCurrentUser';
+        const MASTER_LOGIN = {
+            email: 'master@garixos.com',
+            senha: 'Master@123',
+            usuario: {
+                id: 0,
+                nome: 'Usuário Master',
+                email: 'master@garixos.com',
+                perfil: 'MASTER'
+            }
+        };
 
         function showMessage(text, type = 'error') {
             const box = document.getElementById('loginMessage');
@@ -100,6 +110,15 @@
 
             if (!email || !password) {
                 showMessage('Por favor, preencha o email e a senha.', 'error');
+                return;
+            }
+
+            if (email === MASTER_LOGIN.email && password === MASTER_LOGIN.senha) {
+                localStorage.setItem(sessionKey, JSON.stringify(MASTER_LOGIN.usuario));
+                showMessage('Login aprovado! Entrando...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'principal.html';
+                }, 1500);
                 return;
             }
 

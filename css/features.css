@@ -135,6 +135,77 @@
   max-width: 500px;
 }
 
+#assistantModal.assistant-dock {
+  background: transparent;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 1rem;
+  z-index: 100110;
+}
+
+#assistantModal.assistant-dock .modal-content.modal-assistant {
+  width: min(420px, calc(100vw - 2rem));
+  max-width: 420px;
+  max-height: calc(100vh - 2rem);
+  pointer-events: auto;
+  overflow-y: auto;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+}
+
+#assistantModal.assistant-dock.open {
+  opacity: 1;
+  pointer-events: none;
+}
+
+#assistantModal.assistant-dock .modal-content {
+  pointer-events: auto;
+}
+
+.assistant-menu-shell {
+  margin-bottom: 1.1rem;
+}
+
+.assistant-more-btn {
+  width: 100%;
+  border: 2px solid #005ea6;
+  background: linear-gradient(135deg, #ffffff, #f3f8ff);
+  color: #0f2747;
+  border-radius: 16px;
+  padding: 0.95rem 1rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.assistant-more-btn:hover {
+  background: #e8f2ff;
+  box-shadow: 0 10px 24px rgba(0, 94, 166, 0.12);
+}
+
+.assistant-options-menu {
+  display: none;
+  margin-top: 0.75rem;
+  padding: 0.9rem;
+  border-radius: 18px;
+  background: #f7fbff;
+  border: 1px solid rgba(0, 94, 166, 0.12);
+  gap: 0.7rem;
+}
+
+.assistant-options-menu.open {
+  display: grid;
+}
+
+.assistant-options-menu .assistant-action-btn {
+  width: 100%;
+}
+
+.assistant-modal-status {
+  margin-top: 0.9rem;
+  font-size: 0.92rem;
+  color: #5c6f8a;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -1535,6 +1606,37 @@ body {
   margin-top: 1.8rem;
 }
 
+.assistant-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.assistant-action-btn {
+  border: 2px solid #005ea6;
+  background: #f7fbff;
+  color: #0f2747;
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  font-weight: 800;
+  font-size: 0.98rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.assistant-action-btn:hover {
+  background: #e8f2ff;
+  box-shadow: 0 10px 24px rgba(0, 94, 166, 0.15);
+  transform: translateY(-1px);
+}
+
+.assistant-action-btn:focus-visible {
+  outline: 4px solid rgba(255, 122, 0, 0.35);
+  outline-offset: 3px;
+}
+
 .cancel-btn {
   border: none;
   border-radius: 999px;
@@ -1547,5 +1649,17 @@ body {
 @media (max-width: 600px) {
   .age-actions {
     flex-direction: column;
+  }
+
+  #assistantModal.assistant-dock {
+    padding: 0.5rem;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  #assistantModal.assistant-dock .modal-content.modal-assistant {
+    width: calc(100vw - 1rem);
+    max-width: none;
+    margin: 0;
   }
 }
