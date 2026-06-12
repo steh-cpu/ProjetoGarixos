@@ -329,7 +329,7 @@
 
     if (window.GarixosTutorial && typeof window.GarixosTutorial.start === 'function') {
       addBotMessage('Modo idoso ativado. Vou iniciar o tutorial padrão em seguida.');
-      window.GarixosTutorial.start();
+      window.GarixosTutorial.start({ audioDescription: true });
       return;
     }
 

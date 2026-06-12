@@ -6,7 +6,7 @@
      2. Antes do </body>:
         <script src="./js/tutorial.js"></script>
    O tutorial inicia automaticamente na 1ª visita.
-   Para forçar reinício: GarixosTutorial.start()
+  Para forçar reinício: GarixosTutorial.start({ audioDescription: true })
 =================================================== */
 
 (function () {
@@ -312,8 +312,10 @@
   }
 
   /* ─── INICIAR ─── */
-  function start() {
+  function start(options) {
+    options = options || {};
     currentStep = 0;
+    voiceEnabled = !!options.audioDescription;
     overlayEl.classList.add('active');
     tooltipEl.style.display = 'block';
     borderEl.style.opacity  = '1';

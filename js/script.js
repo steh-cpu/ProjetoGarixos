@@ -703,7 +703,7 @@ function stopTruckAtTrash(truckData, trash) {
         document.body.classList.add('elderly-mode');
       }
 
-      window.GarixosTutorial.start();
+      window.GarixosTutorial.start({ audioDescription: openConfirmAfterFinish });
       speak('Vamos iniciar o tutorial.');
     }
 
