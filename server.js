@@ -597,25 +597,18 @@ app.get('/api/solicitacoes', async (req, res) => {
 // ==========================================
 // ROTA DE SOLICITAÇÕES DE COLETA
 // ==========================================
+// ==========================================
+// ROTA DE SOLICITAÇÕES DE COLETA
+// ==========================================
 app.post('/api/solicitacoes', async (req, res) => {
   try {
-    const { usuario_id, tipo_lixo, status } = req.body; // <-- Repare que recebemos tipo_lixo
-    const { SolicitacaoColeta, Endereco } = require('./models');
-    
-    // 1. O Back-end procura automaticamente o endereço que pertence a este usuário
-    const enderecoDoUsuario = await Endereco.findOne({ 
-      where: { usuario_id: usuario_id } 
-    });
+    const { usuario_id, endereco_id, tipo_lixo, status } = req.body; 
+    const { SolicitacaoColeta } = require('./models');
 
-    if (!enderecoDoUsuario) {
-      return res.status(400).json({ mensagem: 'Nenhum endereço cadastrado para este usuário.' });
-    }
-
-    // 2. Cria a solicitação usando o ID real do endereço encontrado
     const novaSolicitacao = await SolicitacaoColeta.create({
       usuario_id: usuario_id,
-      endereco_id: enderecoDoUsuario.id, 
-      tipo_lixo: tipo_lixo, // <-- AQUI ESTAVA O ERRO! Mudei de tipoLixo para tipo_lixo
+      endereco_id: endereco_id, 
+      tipo_lixo: tipo_lixo,
       status: status || 'PENDENTE'
     });
 
@@ -669,17 +662,47 @@ app.delete('/api/solicitacoes/:id', async (req, res) => {
 // ==========================================
 // ROTA DO ASSISTENTE VIRTUAL (GEMINI)
 // ==========================================
+// ==========================================
+// ROTA DO ASSISTENTE VIRTUAL (SIMULADOR PARA APRESENTAÇÃO)
+// ==========================================
+// ==========================================
+// ROTA DO ASSISTENTE VIRTUAL (SIMULADOR PARA APRESENTAÇÃO)
+// ==========================================
+
+
+// ==========================================
+// ROTA DO ASSISTENTE VIRTUAL (SIMULADOR PARA APRESENTAÇÃO)
+// ==========================================
 app.post('/api/assistant/chat', async (req, res) => {
   try {
     const { history = [] } = req.body;
-    const reply = await generateAssistantReply(history);
+    const lastMessage = history[history.length - 1].parts[0].text.toLowerCase();
+
+    // Resposta padrão
+    let reply = "Em breve vai estar finalizado!"; 
+
+    // Perguntas padrões da assistente
+    if (lastMessage.includes("solicitar") || lastMessage.includes("coleta?")) {
+        reply = "Para solicitar uma coleta, clique no card 'Solicitar Coleta' na tela inicial, selecione o endereço desejado, o tipo de resíduo e confirme. Você poderá acompanhar o status pelo seu histórico!";
+    } else if (lastMessage.includes("Tipos de lixo aceitos") || lastMessage.includes("lixo") || lastMessage.includes("aceitos")) {
+        reply = "Aceitamos os seguintes tipos de resíduos: Orgânico, Reciclável, Eletrônico, Poda e Entulho. Cada um deles é encaminhado para o tratamento correto!";
+    
+    // Perguntas anteriores de segurança e resíduos perigosos
+    } else if (lastMessage.includes("vidro")) {
+        reply = "Vidros quebrados devem ser embalados em caixas ou garrafas PET para segurança dos coletores. Por favor, identifique a embalagem como 'Vidro'.";
+    } else if (lastMessage.includes("horário")) {
+        reply = "Nossos horários são de segunda a sexta, das 07h às 18h, e aos sábados das 08h às 12h. Consulte a aba 'Horários' no menu para detalhes!";
+    } else if (lastMessage.includes("pilhas") || lastMessage.includes("bateria")) {
+        reply = "Pilhas e baterias contêm metais pesados tóxicos. Entregue-as em pontos de logística reversa (supermercados ou farmácias). Nunca descarte no lixo comum!";
+    } else if (lastMessage.includes("óleo")) {
+        reply = "O óleo de cozinha nunca deve ser despejado na pia. Armazene-o frio em uma garrafa PET e entregue em pontos de coleta.";
+    } else if (lastMessage.includes("saúde") || lastMessage.includes("médico") || lastMessage.includes("agulha")) {
+        reply = "Materiais de saúde (seringas, agulhas) são resíduos especiais. Coloque agulhas em recipientes rígidos e descarte-as em postos de saúde.";
+    }
 
     res.status(200).json({ reply });
   } catch (error) {
-    console.error('Erro no assistente virtual:', error);
-    res.status(500).json({
-      mensagem: 'Não foi possível gerar a resposta do assistente no momento.'
-    });
+    res.status(500).json({ mensagem: 'Erro no assistente.' });
   }
 });
 
