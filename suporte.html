@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garixos — Painel de Suporte</title>
+  <link rel="icon" href="./assets/logoprincipal.png">
+  <link rel="stylesheet" href="./css/styles.css">
+  <link rel="stylesheet" href="./css/suporte.css">
+</head>
+<body class="suporte-page">
+
+  <!-- ========== HEADER ========== -->
+  <header class="sp-header">
+    <div class="sp-header-inner">
+      <a href="principal.html" class="sp-logo">
+        <img src="assets/logoprincipal.png" alt="Garixos">
+        <div>
+          <strong>Garixos</strong>
+          <span>Painel de Suporte</span>
+        </div>
+      </a>
+
+      <nav class="sp-tabs" role="tablist">
+        <button class="sp-tab active" data-tab="solicitacoes" role="tab">
+          ♻️ Solicitações
+          <span class="sp-tab-badge" id="badge-solicitacoes">0</span>
+        </button>
+        <button class="sp-tab" data-tab="chamados" role="tab">
+          🎫 Chamados
+          <span class="sp-tab-badge" id="badge-chamados">0</span>
+        </button>
+        <button class="sp-tab" data-tab="feedbacks" role="tab">
+          💬 Feedbacks
+          <span class="sp-tab-badge" id="badge-feedbacks">0</span>
+        </button>
+        <button class="sp-tab" data-tab="usuarios" role="tab">
+          👥 Usuários
+          <span class="sp-tab-badge" id="badge-usuarios">0</span>
+        </button>
+      </nav>
+
+      <div class="sp-header-actions">
+        <span id="sp-user-name" class="sp-user-name">—</span>
+        <a href="principal.html" class="sp-btn-outline">← Voltar</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== CONTEÚDO PRINCIPAL ========== -->
+  <main class="sp-main">
+
+    <!-- ── TOAST ── -->
+    <div id="sp-toast" class="sp-toast" aria-live="polite"></div>
+
+    <!-- ══════════════════════════════
+         ABA: SOLICITAÇÕES DE COLETA
+    ══════════════════════════════ -->
+    <section class="sp-panel active" id="panel-solicitacoes">
+      <div class="sp-panel-header">
+        <div>
+          <h2>Solicitações de Coleta</h2>
+          <p>Gerencie e atualize o status das solicitações dos cidadãos.</p>
+        </div>
+        <div class="sp-filters">
+          <select id="filtro-status-sol">
+            <option value="">Todos os status</option>
+            <option value="PENDENTE">Pendente</option>
+            <option value="EM_ANDAMENTO">Em Andamento</option>
+            <option value="CONCLUIDO">Concluído</option>
+            <option value="CANCELADO">Cancelado</option>
+          </select>
+          <select id="filtro-tipo-lixo">
+            <option value="">Todos os tipos</option>
+            <option value="ORGANICO">Orgânico</option>
+            <option value="RECICLAVEL">Reciclável</option>
+            <option value="ELETRONICO">Eletrônico</option>
+            <option value="PODA">Poda</option>
+            <option value="ENTULHO">Entulho</option>
+          </select>
+          <button class="sp-btn-primary" onclick="carregarSolicitacoes()">🔄 Atualizar</button>
+        </div>
+      </div>
+
+      <div class="sp-loading" id="loading-sol">Carregando solicitações...</div>
+      <div class="sp-empty" id="empty-sol" style="display:none;">Nenhuma solicitação encontrada.</div>
+
+      <div class="sp-table-wrap" id="tabela-sol-wrap" style="display:none;">
+        <table class="sp-table" id="tabela-solicitacoes">
+          <thead>
+            <tr>
+              <th>#ID</th>
+              <th>Usuário</th>
+              <th>Endereço</th>
+              <th>Tipo</th>
+              <th>Data</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="body-solicitacoes"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════
+         ABA: CHAMADOS DE SUPORTE
+    ══════════════════════════════ -->
+    <section class="sp-panel" id="panel-chamados">
+      <div class="sp-panel-header">
+        <div>
+          <h2>Chamados de Suporte</h2>
+          <p>Veja e responda os chamados enviados pelos usuários.</p>
+        </div>
+        <div class="sp-filters">
+          <select id="filtro-status-cham">
+            <option value="">Todos</option>
+            <option value="aberto">Aberto</option>
+            <option value="em_atendimento">Em Atendimento</option>
+            <option value="resolvido">Resolvido</option>
+          </select>
+          <button class="sp-btn-primary" onclick="carregarChamados()">🔄 Atualizar</button>
+        </div>
+      </div>
+
+      <div class="sp-loading" id="loading-cham">Carregando chamados...</div>
+      <div class="sp-empty" id="empty-cham" style="display:none;">Nenhum chamado encontrado.</div>
+
+      <div class="sp-cards-grid" id="grid-chamados" style="display:none;"></div>
+    </section>
+
+    <!-- ══════════════════════════════
+         ABA: FEEDBACKS
+    ══════════════════════════════ -->
+    <section class="sp-panel" id="panel-feedbacks">
+      <div class="sp-panel-header">
+        <div>
+          <h2>Feedbacks</h2>
+          <p>Acompanhe as opiniões e sugestões enviadas pelos usuários.</p>
+        </div>
+        <div class="sp-filters">
+          <select id="filtro-tipo-feed">
+            <option value="">Todos os tipos</option>
+            <option value="sugestao">Sugestão</option>
+            <option value="bug">Bug</option>
+            <option value="elogio">Elogio</option>
+            <option value="outro">Outro</option>
+          </select>
+          <button class="sp-btn-primary" onclick="carregarFeedbacks()">🔄 Atualizar</button>
+        </div>
+      </div>
+
+      <div class="sp-loading" id="loading-feed">Carregando feedbacks...</div>
+      <div class="sp-empty" id="empty-feed" style="display:none;">Nenhum feedback encontrado.</div>
+
+      <div class="sp-cards-grid" id="grid-feedbacks" style="display:none;"></div>
+    </section>
+
+    <!-- ══════════════════════════════
+         ABA: USUÁRIOS
+    ══════════════════════════════ -->
+    <section class="sp-panel" id="panel-usuarios">
+      <div class="sp-panel-header">
+        <div>
+          <h2>Usuários Cadastrados</h2>
+          <p>Visualize e gerencie os usuários do sistema.</p>
+        </div>
+        <div class="sp-filters">
+          <input type="text" id="filtro-busca-usuario" placeholder="Buscar por nome ou email...">
+          <button class="sp-btn-primary" onclick="carregarUsuarios()">🔄 Atualizar</button>
+        </div>
+      </div>
+
+      <div class="sp-loading" id="loading-usu">Carregando usuários...</div>
+      <div class="sp-empty" id="empty-usu" style="display:none;">Nenhum usuário encontrado.</div>
+
+      <div class="sp-table-wrap" id="tabela-usu-wrap" style="display:none;">
+        <table class="sp-table" id="tabela-usuarios">
+          <thead>
+            <tr>
+              <th>#ID</th>
+              <th>Nome</th>
+              <th>Email</th>
+              <th>Perfil</th>
+              <th>Cadastrado em</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="body-usuarios"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════════════════════════
+       MODAL: ATUALIZAR SOLICITAÇÃO
+  ══════════════════════════════ -->
+  <div id="modal-sol" class="sp-modal-overlay" aria-hidden="true">
+    <div class="sp-modal">
+      <button class="sp-modal-close" onclick="fecharModalSol()">✕</button>
+      <h3>Atualizar Solicitação <span id="modal-sol-id"></span></h3>
+
+      <div class="sp-form-group">
+        <label>Status:</label>
+        <select id="modal-sol-status">
+          <option value="PENDENTE">Pendente</option>
+          <option value="EM_ANDAMENTO">Em Andamento</option>
+          <option value="CONCLUIDO">Concluído</option>
+          <option value="CANCELADO">Cancelado</option>
+        </select>
+      </div>
+
+      <div class="sp-form-group">
+        <label>Veículo (ID):</label>
+        <input type="number" id="modal-sol-veiculo" placeholder="ID do veículo (opcional)">
+      </div>
+
+      <div class="sp-modal-actions">
+        <button class="sp-btn-outline" onclick="fecharModalSol()">Cancelar</button>
+        <button class="sp-btn-primary" onclick="salvarSolicitacao()">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       MODAL: VER CHAMADO
+  ══════════════════════════════ -->
+  <div id="modal-cham" class="sp-modal-overlay" aria-hidden="true">
+    <div class="sp-modal">
+      <button class="sp-modal-close" onclick="fecharModalCham()">✕</button>
+      <h3>Detalhes do Chamado</h3>
+      <div id="modal-cham-body"></div>
+      <div class="sp-form-group" style="margin-top:16px;">
+        <label>Atualizar Status:</label>
+        <select id="modal-cham-status">
+          <option value="aberto">Aberto</option>
+          <option value="em_atendimento">Em Atendimento</option>
+          <option value="resolvido">Resolvido</option>
+        </select>
+      </div>
+      <div class="sp-modal-actions">
+        <button class="sp-btn-outline" onclick="fecharModalCham()">Fechar</button>
+        <button class="sp-btn-primary" onclick="salvarChamado()">💾 Salvar Status</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       MODAL: EDITAR USUÁRIO
+  ══════════════════════════════ -->
+  <div id="modal-usuario" class="sp-modal-overlay" aria-hidden="true">
+    <div class="sp-modal">
+      <button class="sp-modal-close" onclick="fecharModalUsuario()">✕</button>
+      <h3>Editar usuário <span id="modal-usuario-id"></span></h3>
+
+      <div class="sp-form-group">
+        <label>Nome:</label>
+        <input type="text" id="modal-usuario-nome" placeholder="Nome completo">
+      </div>
+
+      <div class="sp-form-group">
+        <label>Email:</label>
+        <input type="email" id="modal-usuario-email" placeholder="email@dominio.com">
+      </div>
+
+      <div class="sp-form-group">
+        <label>Perfil:</label>
+        <select id="modal-usuario-perfil">
+          <option value="CLIENTE">Cliente</option>
+          <option value="ADMIN_INTERNO">Admin</option>
+          <option value="MASTER">Master</option>
+        </select>
+      </div>
+
+      <div class="sp-modal-actions">
+        <button class="sp-btn-outline" onclick="fecharModalUsuario()">Cancelar</button>
+        <button class="sp-btn-primary" onclick="salvarUsuario()">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       MODAL: CONFIRMAR EXCLUSÃO
+  ══════════════════════════════ -->
+  <div id="modal-confirm" class="sp-modal-overlay" aria-hidden="true">
+    <div class="sp-modal" style="max-width:400px;">
+      <h3>⚠️ Confirmar exclusão</h3>
+      <p id="modal-confirm-msg">Tem certeza que deseja excluir este item?</p>
+      <div class="sp-modal-actions">
+        <button class="sp-btn-outline" onclick="fecharModalConfirm()">Cancelar</button>
+        <button class="sp-btn-danger" id="modal-confirm-ok">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/suporte.js"></script>
+</body>
+</html>

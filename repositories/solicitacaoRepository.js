@@ -26,10 +26,25 @@ const obterSolicitacoes = async () => {
 
 const salvarSolicitacao = async (dadosSolicitacao) => {
   try {
-    if (!dadosSolicitacao.status) {
-      dadosSolicitacao.status = 'PENDENTE';
+    const dadosNormalizados = { ...dadosSolicitacao };
+
+    if (!dadosNormalizados.status) {
+      dadosNormalizados.status = 'PENDENTE';
     }
-    return await SolicitacaoColeta.create(dadosSolicitacao);
+
+    if (dadosNormalizados.veiculo_id !== undefined && dadosNormalizados.veiculo_id !== null && dadosNormalizados.veiculo_id !== '') {
+      const veiculoId = Number(dadosNormalizados.veiculo_id);
+      if (!Number.isInteger(veiculoId) || veiculoId <= 0) {
+        dadosNormalizados.veiculo_id = null;
+      } else {
+        const veiculo = await Veiculo.findByPk(veiculoId);
+        dadosNormalizados.veiculo_id = veiculo ? veiculoId : null;
+      }
+    } else {
+      dadosNormalizados.veiculo_id = null;
+    }
+
+    return await SolicitacaoColeta.create(dadosNormalizados);
   } catch (error) {
     console.error('Erro ao salvar solicitação:', error);
     throw new Error('Não foi possível registar a solicitação.');
@@ -40,7 +55,21 @@ const atualizarSolicitacao = async (id, dadosAtualizados) => {
   try {
     const solicitacao = await SolicitacaoColeta.findByPk(id);
     if (solicitacao) {
-      await solicitacao.update(dadosAtualizados);
+      const dadosNormalizados = { ...dadosAtualizados };
+
+      if (dadosNormalizados.veiculo_id !== undefined && dadosNormalizados.veiculo_id !== null && dadosNormalizados.veiculo_id !== '') {
+        const veiculoId = Number(dadosNormalizados.veiculo_id);
+        if (!Number.isInteger(veiculoId) || veiculoId <= 0) {
+          dadosNormalizados.veiculo_id = null;
+        } else {
+          const veiculo = await Veiculo.findByPk(veiculoId);
+          dadosNormalizados.veiculo_id = veiculo ? veiculoId : null;
+        }
+      } else if (dadosNormalizados.veiculo_id === '') {
+        dadosNormalizados.veiculo_id = null;
+      }
+
+      await solicitacao.update(dadosNormalizados);
       return solicitacao;
     }
     return null;

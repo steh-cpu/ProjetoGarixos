@@ -55,12 +55,23 @@
           </div>
         </div>
       </div>
-      <a id="userLink" href="index.html">Sair</a>
+      <a id="userLink" href="#" class="user-link-button">Usuário</a>
       <a id="logoutLink" href="#logout" onclick="logout(event)" class="logout-link" style="display:none;">Sair</a>
     </div>
 
   </div>
 </header>
+
+    <div id="perfilModal" class="modal" role="dialog" aria-labelledby="perfilTitle" aria-hidden="true">
+      <div class="modal-content">
+        <button class="close-btn" onclick="closePerfilModal()" aria-label="Fechar modal">&times;</button>
+        <h2 id="perfilTitle">Meu Perfil</h2>
+        <div id="perfilUsuarioContent" class="modal-body">
+          <p style="color: var(--text-muted);">Carregando suas informações...</p>
+        </div>
+      </div>
+    </div>
+
     <!-- ========== GRID DE 6 CARDS PRINCIPAIS ========== -->
     <section class="features-grid" id="features">
       <!-- Card 1: Histórico -->

@@ -14,6 +14,7 @@ const enderecoRepo = require('./repositories/enderecoRepository.js'); // Ajuste 
 const zonaColetaRepo = require('./repositories/zonaColetaRepository.js');
 const veiculoRepo = require('./repositories/veiculoRepository.js');
 const solicitacaoRepo = require('./repositories/solicitacaoRepository.js');
+const suporteRepo = require('./repositories/suporteRepository.js');
 require('dotenv').config();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -191,6 +192,22 @@ app.get('/api/usuarios', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ mensagem: 'Erro interno ao buscar os usuários.' });
+  }
+});
+
+app.get('/api/usuarios/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const usuario = await usuarioRepo.buscarPorId(id);
+
+    if (!usuario) {
+      return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
+    }
+
+    res.status(200).json(usuario);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensagem: 'Erro interno ao buscar o usuário.' });
   }
 });
 
@@ -381,15 +398,73 @@ app.get('/api/enderecos', async (req, res) => {
 });
 
 // ==========================================
-// ROTA GET: Listar TODOS os Endereços (Geral)
+// ROTAS DE SUPORTE / FEEDBACK / ALTERAÇÃO DE DADOS
 // ==========================================
-app.get('/api/enderecos', async (req, res) => {
+app.get('/api/suporte', async (req, res) => {
   try {
-    const enderecos = await enderecoRepo.obterTodosEnderecos();
-    res.status(200).json(enderecos);
+    const registros = await suporteRepo.listarSolicitacoes();
+    res.status(200).json(registros);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensagem: 'Erro interno ao buscar endereços.' });
+    res.status(500).json({ mensagem: 'Erro interno ao buscar registros de suporte.' });
+  }
+});
+
+app.post('/api/suporte', async (req, res) => {
+  try {
+    const { tipo, email, assunto, mensagem, tipo_feedback, usuario_id } = req.body;
+
+    if (!tipo || !email || !assunto || !mensagem) {
+      return res.status(400).json({ mensagem: 'Tipo, email, assunto e mensagem são obrigatórios.' });
+    }
+
+    const novoRegistro = await suporteRepo.criarSolicitacao({
+      tipo,
+      email,
+      assunto,
+      mensagem,
+      tipo_feedback: tipo_feedback || null,
+      status: 'aberto',
+      usuario_id: usuario_id || null
+    });
+
+    res.status(201).json(novoRegistro);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensagem: 'Erro interno ao salvar o registro de suporte.' });
+  }
+});
+
+app.put('/api/suporte/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const atualizado = await suporteRepo.atualizarStatus(id, status || 'aberto');
+    if (!atualizado) {
+      return res.status(404).json({ mensagem: 'Registro de suporte não encontrado.' });
+    }
+
+    res.status(200).json(atualizado);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensagem: 'Erro interno ao atualizar o registro de suporte.' });
+  }
+});
+
+app.delete('/api/suporte/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const removido = await suporteRepo.excluirSolicitacao(id);
+
+    if (!removido) {
+      return res.status(404).json({ mensagem: 'Registro de suporte não encontrado.' });
+    }
+
+    res.status(200).json({ mensagem: 'Registro removido com sucesso.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensagem: 'Erro interno ao remover o registro de suporte.' });
   }
 });
 

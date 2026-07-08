@@ -21,6 +21,15 @@
       return fullName ? fullName.trim().split(' ')[0] : 'Usuário';
     }
 
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function updateHeaderUser() {
       const userLink = document.getElementById('userLink');
       const logoutLink = document.getElementById('logoutLink');
@@ -51,6 +60,136 @@
         return;
       }
       updateHeaderUser();
+    }
+
+    async function openPerfilModal() {
+      const modal = document.getElementById('perfilModal');
+      const content = document.getElementById('perfilUsuarioContent');
+      const user = getCurrentUser();
+
+      if (!modal || !content || !user) {
+        if (!user) {
+          window.location.href = 'index.html';
+        }
+        return;
+      }
+
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      content.innerHTML = '<p style="color: var(--text-muted);">Carregando suas informações...</p>';
+
+      try {
+        const [usuarioResponse, supportResponse] = await Promise.all([
+          fetch(`http://localhost:3000/api/usuarios/${user.id}`),
+          fetch('http://localhost:3000/api/suporte')
+        ]);
+
+        if (!usuarioResponse.ok) {
+          throw new Error('Não foi possível carregar suas informações.');
+        }
+
+        if (!supportResponse.ok) {
+          throw new Error('Não foi possível carregar seus registros de suporte.');
+        }
+
+        const usuario = await usuarioResponse.json();
+        const registros = await supportResponse.json();
+        const minhasSolicitacoes = registros.filter((item) => {
+          const usuarioId = Number(item.usuario_id);
+          const mesmoUsuario = Number.isInteger(usuarioId) && usuarioId === Number(user.id);
+          const mesmoEmail = typeof item.email === 'string' && item.email.toLowerCase() === String(user.email || '').toLowerCase();
+          return mesmoUsuario || mesmoEmail;
+        });
+        const chamados = minhasSolicitacoes.filter((item) => item.tipo === 'chamado');
+        const feedbacks = minhasSolicitacoes.filter((item) => item.tipo === 'feedback');
+        const dataNascimento = usuario.data_nascimento
+          ? new Date(usuario.data_nascimento).toLocaleDateString('pt-BR')
+          : 'Não informada';
+        const perfilTexto = usuario.perfil === 'ADMIN'
+          ? 'Administrador'
+          : usuario.perfil === 'MASTER'
+            ? 'Master'
+            : 'Cidadão';
+
+        const renderSupportItems = (items, tipo) => {
+          if (items.length === 0) {
+            return '<p style="margin:0; color: var(--text-muted);">Nenhum ' + tipo + ' registrado ainda.</p>';
+          }
+
+          return items.map((item) => {
+            const status = item.status || 'aberto';
+            const data = item.createdAt ? new Date(item.createdAt).toLocaleDateString('pt-BR') : '—';
+            return `
+              <div style="padding:0.8rem; border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
+                <div style="display:flex; justify-content:space-between; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-bottom:0.3rem;">
+                  <strong style="color:#0f2747;">${escapeHtml(item.assunto || 'Sem assunto')}</strong>
+                  <span style="font-size:0.75rem; color:#64748b;">${escapeHtml(status)}</span>
+                </div>
+                <div style="font-size:0.85rem; color:#475569; margin-bottom:0.25rem;">${escapeHtml(item.mensagem || 'Sem mensagem')}</div>
+                <div style="font-size:0.75rem; color:#64748b;">${escapeHtml(data)}</div>
+              </div>
+            `;
+          }).join('');
+        };
+
+        content.innerHTML = `
+          <div style="display:grid; gap:0.9rem;">
+            <div style="padding:1rem; border-radius:12px; background:#f5f7fb;">
+              <strong style="display:block; margin-bottom:0.25rem; color:#0f2747;">Nome</strong>
+              <span>${escapeHtml(usuario.nome || 'Não informado')}</span>
+            </div>
+            <div style="padding:1rem; border-radius:12px; background:#f5f7fb;">
+              <strong style="display:block; margin-bottom:0.25rem; color:#0f2747;">E-mail</strong>
+              <span>${escapeHtml(usuario.email || 'Não informado')}</span>
+            </div>
+            <div style="padding:1rem; border-radius:12px; background:#f5f7fb;">
+              <strong style="display:block; margin-bottom:0.25rem; color:#0f2747;">Data de nascimento</strong>
+              <span>${escapeHtml(dataNascimento)}</span>
+            </div>
+            <div style="padding:1rem; border-radius:12px; background:#f5f7fb;">
+              <strong style="display:block; margin-bottom:0.25rem; color:#0f2747;">Perfil</strong>
+              <span>${escapeHtml(perfilTexto)}</span>
+            </div>
+            <div style="padding:1rem; border-radius:12px; background:#f8fafc; display:grid; gap:0.75rem;">
+              <strong style="color:#0f2747;">Meus chamados e feedbacks</strong>
+              <div>
+                <strong style="display:block; margin-bottom:0.35rem; color:#0f2747;">Chamados</strong>
+                <div style="display:grid; gap:0.45rem;">${renderSupportItems(chamados, 'chamado')}</div>
+              </div>
+              <div>
+                <strong style="display:block; margin-bottom:0.35rem; color:#0f2747;">Feedbacks</strong>
+                <div style="display:grid; gap:0.45rem;">${renderSupportItems(feedbacks, 'feedback')}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Erro ao carregar perfil:', error);
+        content.innerHTML = `
+          <p style="color:#c62828;">Não foi possível carregar os dados do perfil no momento.</p>
+        `;
+      }
+    }
+
+    function closePerfilModal() {
+      const modal = document.getElementById('perfilModal');
+      if (!modal) return;
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    const userLink = document.getElementById('userLink');
+    if (userLink) {
+      userLink.addEventListener('click', async (event) => {
+        const user = getCurrentUser();
+        if (!user) {
+          window.location.href = 'index.html';
+          return;
+        }
+
+        event.preventDefault();
+        await openPerfilModal();
+      });
     }
 
     // ========== LOGOUT ==========
@@ -977,47 +1116,90 @@ function finishElderlyTutorial() {
 }
 
     // ========== SUPORTE E FEEDBACK ==========
-    document.getElementById('supportForm').addEventListener('submit', function(e) {
+    document.getElementById('supportForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const email = document.getElementById('supportEmail').value.trim();
+      const user = getCurrentUser();
+      const email = (document.getElementById('supportEmail').value.trim() || (user ? user.email : '')).trim();
       const subject = document.getElementById('supportSubject').value.trim();
       const message = document.getElementById('supportMessage').value.trim();
 
-      if (email && subject && message) {
-        const data = { email, subject, message, timestamp: new Date().toLocaleString('pt-BR') };
-        let saved = JSON.parse(localStorage.getItem('garinxoSupportEmails') || '[]');
-        saved.push(data);
-        localStorage.setItem('garinxoSupportEmails', JSON.stringify(saved));
+      if (!email || !subject || !message) {
+        return;
+      }
 
-        const box = document.getElementById('supportMessage-response');
-        box.textContent = '✅ Suporte recebido! Entraremos em contato em breve.';
+      const box = document.getElementById('supportMessage-response');
+
+      try {
+        const response = await fetch('http://localhost:3000/api/suporte', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'chamado',
+            email,
+            assunto: subject,
+            mensagem: message,
+            usuario_id: user ? user.id : null
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Falha ao enviar o chamado.');
+        }
+
+        box.textContent = '✅ Chamado enviado com sucesso!';
         box.className = 'form-message success';
         box.style.display = 'block';
-
         this.reset();
         setTimeout(() => box.style.display = 'none', 4000);
+      } catch (error) {
+        console.error(error);
+        box.textContent = '❌ Não foi possível enviar o chamado neste momento.';
+        box.className = 'form-message error';
+        box.style.display = 'block';
       }
     });
 
-    document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+    document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const email = document.getElementById('feedbackEmail').value.trim();
+      const user = getCurrentUser();
+      const email = (document.getElementById('feedbackEmail').value.trim() || (user ? user.email : '')).trim();
       const type = document.getElementById('feedbackType').value;
       const message = document.getElementById('feedbackMessage').value.trim();
 
-      if (email && type && message) {
-        const data = { email, type, message, timestamp: new Date().toLocaleString('pt-BR') };
-        let saved = JSON.parse(localStorage.getItem('garinxoFeedbackEmails') || '[]');
-        saved.push(data);
-        localStorage.setItem('garinxoFeedbackEmails', JSON.stringify(saved));
+      if (!email || !type || !message) {
+        return;
+      }
 
-        const box = document.getElementById('feedbackMessage-response');
+      const box = document.getElementById('feedbackMessage-response');
+
+      try {
+        const response = await fetch('http://localhost:3000/api/suporte', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'feedback',
+            email,
+            assunto: `Feedback: ${type}`,
+            mensagem: message,
+            tipo_feedback: type,
+            usuario_id: user ? user.id : null
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Falha ao enviar o feedback.');
+        }
+
         box.textContent = '✅ Obrigado pelo seu feedback!';
         box.className = 'form-message success';
         box.style.display = 'block';
-
         this.reset();
         setTimeout(() => box.style.display = 'none', 4000);
+      } catch (error) {
+        console.error(error);
+        box.textContent = '❌ Não foi possível enviar o feedback neste momento.';
+        box.className = 'form-message error';
+        box.style.display = 'block';
       }
     });
 

@@ -19,8 +19,29 @@ const obterEnderecosPorUsuario = async (usuario_id) => {
 
 const salvarEndereco = async (dadosEndereco) => {
   try {
-    // dadosEndereco deve conter: usuario_id, cep, logradouro, bairro, numero, zona_id
-    return await Endereco.create(dadosEndereco);
+    const dadosNormalizados = { ...dadosEndereco };
+
+    if (dadosNormalizados.zona_id !== undefined && dadosNormalizados.zona_id !== null && dadosNormalizados.zona_id !== '') {
+      const zonaId = Number(dadosNormalizados.zona_id);
+      if (!Number.isInteger(zonaId) || zonaId <= 0) {
+        dadosNormalizados.zona_id = null;
+      } else {
+        const zona = await ZonaColeta.findByPk(zonaId);
+        dadosNormalizados.zona_id = zona ? zonaId : null;
+      }
+    } else {
+      dadosNormalizados.zona_id = null;
+    }
+
+    try {
+      return await Endereco.create(dadosNormalizados);
+    } catch (erroCriacao) {
+      if (erroCriacao.name === 'SequelizeForeignKeyConstraintError' && dadosNormalizados.zona_id !== null) {
+        dadosNormalizados.zona_id = null;
+        return await Endereco.create(dadosNormalizados);
+      }
+      throw erroCriacao;
+    }
   } catch (error) {
     console.error('Erro ao salvar endereço:', error);
     throw new Error('Não foi possível cadastrar o endereço.');
