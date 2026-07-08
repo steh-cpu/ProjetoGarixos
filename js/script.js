@@ -166,6 +166,7 @@ function showNotificationToast() {
     });
 
 // ========== HISTÓRICO CONECTADO À API ==========
+// ========== HISTÓRICO CONECTADO À API ==========
     async function renderHistorico() {
       const historyBody = document.getElementById('historicoBody');
       if (!historyBody) return;
@@ -219,12 +220,20 @@ function showNotificationToast() {
             statusTexto = '🚛 Em Andamento';
           }
 
+          // NOVIDADE: Botão de cancelar criado apenas para pedidos pendentes
+          const botaoCancelar = statusLower === 'pendente' || statusLower === 'pendente'
+            ? `<button onclick="cancelarSolicitacao(${item.id})" style="background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8rem; margin-top: 8px; display: block; width: 100%; transition: 0.3s;">Cancelar</button>`
+            : '';
+
           historyBody.innerHTML += `
             <tr>
               <td>${dataFormatada}</td>
               <td>${horaFormatada}</td>
               <td>${localFormatado} <small style="display:block; color:var(--text-muted);">${item.tipo_lixo}</small></td>
-              <td><span class="status-badge ${statusClass}">${statusTexto}</span></td>
+              <td>
+                <span class="status-badge ${statusClass}">${statusTexto}</span>
+                ${botaoCancelar}
+              </td>
             </tr>
           `;
         });
@@ -235,6 +244,29 @@ function showNotificationToast() {
             <td colspan="4" style="text-align:center; color:red; padding: 2rem;">Erro ao conectar com a API de histórico.</td>
           </tr>
         `;
+      }
+    }
+    // ========== CANCELAR SOLICITAÇÃO ==========
+    async function cancelarSolicitacao(id) {
+      // Pede confirmação para evitar cliques acidentais
+      const confirmar = confirm('Tem certeza que deseja cancelar esta solicitação de coleta?');
+      if (!confirmar) return;
+
+      try {
+        const resposta = await fetch(`http://localhost:3000/api/solicitacoes/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (resposta.ok) {
+          alert('✅ Solicitação cancelada com sucesso!');
+          renderHistorico(); // Recarrega a tabela automaticamente para a linha sumir
+        } else {
+          const erro = await resposta.json();
+          alert('Erro ao cancelar: ' + (erro.mensagem || 'Tente novamente.'));
+        }
+      } catch (error) {
+        console.error('Erro ao cancelar solicitação:', error);
+        alert('Erro de conexão com o servidor.');
       }
     }
 
@@ -261,7 +293,38 @@ function showNotificationToast() {
       document.getElementById('mapaModal').setAttribute('aria-hidden', 'true');
     }
 
+// Função nova para buscar endereços no banco
+    async function carregarEnderecosDropdown() {
+      const selectEndereco = document.getElementById('endereco');
+      const user = getCurrentUser();
+      if (!user || !selectEndereco) return;
+
+      try {
+        const resposta = await fetch('http://localhost:3000/api/enderecos');
+        const todosEnderecos = await resposta.json();
+        
+        // Filtra só os endereços do usuário atual
+        const meusEnderecos = todosEnderecos.filter(end => end.usuario_id === user.id);
+
+        selectEndereco.innerHTML = '<option value="">Selecione o local da coleta</option>';
+
+        if (meusEnderecos.length === 0) {
+          selectEndereco.innerHTML = '<option value="">Nenhum endereço cadastrado</option>';
+        } else {
+          meusEnderecos.forEach(end => {
+            const option = document.createElement('option');
+            option.value = end.id; // Guarda o ID verdadeiro do banco!
+            option.textContent = `${end.logradouro}, ${end.numero} - ${end.bairro}`;
+            selectEndereco.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao buscar endereços:', error);
+      }
+    }
+
     function openSolicitacao() {
+      carregarEnderecosDropdown(); // Carrega os endereços do banco sempre que abre o modal!
       document.getElementById('solicitacaoModal').classList.add('open');
       document.getElementById('solicitacaoModal').setAttribute('aria-hidden', 'false');
     }
@@ -282,6 +345,7 @@ function showNotificationToast() {
     function openCadastroEndereco() {
       document.getElementById('cadastroEnderecoModal').classList.add('open');
       document.getElementById('cadastroEnderecoModal').setAttribute('aria-hidden', 'false');
+      renderListaEnderecos();
     }
     function closeCadastroEndereco() {
       document.getElementById('cadastroEnderecoModal').classList.remove('open');
@@ -561,16 +625,15 @@ function stopTruckAtTrash(truckData, trash) {
       }
     }
 
-    // ========== FORMULÁRIOS ==========
 // ========== FORMULÁRIOS ==========
     document.getElementById('solicitacaoForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const tipoLixo = document.getElementById('tipoLixo').value;
-      const enderecoInput = document.getElementById('endereco').value.trim();
+      const enderecoId = document.getElementById('endereco').value;
 
-      if (!tipoLixo || !enderecoInput) {
-        alert('Por favor, preencha o tipo de lixo e o endereço da solicitação.');
+      if (!tipoLixo || !enderecoId) {
+        alert('Por favor, preencha o tipo de lixo e escolha um endereço.');
         return;
       }
 
@@ -581,18 +644,16 @@ function stopTruckAtTrash(truckData, trash) {
         return;
       }
 
-      // Formata a string para bater com o ENUM do banco (ex: "Entulho" -> "ENTULHO")
       const tipoLixoFormatado = tipoLixo.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
       try {
-        // Envia a solicitação para a API do back-end
         const resposta = await fetch('http://localhost:3000/api/solicitacoes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            usuario_id: user.id, // O ID real do cidadão logado
-            endereco_id: 1, // Fixo temporariamente até integrarmos o seletor de endereços do banco
-            veiculo_id: 1,  // Fixo temporariamente (simula o caminhão alocado)
+            usuario_id: user.id, 
+            endereco_id: parseInt(enderecoId),
+            veiculo_id: 1, 
             tipo_lixo: tipoLixoFormatado,
             status: 'PENDENTE'
           })
@@ -602,25 +663,62 @@ function stopTruckAtTrash(truckData, trash) {
           alert('✅ Solicitação de coleta registrada com sucesso!');
           closeSolicitacao();
           document.getElementById('solicitacaoForm').reset();
-          
-          // Por enquanto chamamos a renderização local apenas para não dar erro na tela.
-          // Na próxima etapa, atualizaremos esta função para ler do banco de dados!
           renderHistorico(); 
         } else {
-          const erro = await resposta.json();
-          alert('Erro ao registrar coleta: ' + (erro.mensagem || 'Verifique se o tipo de lixo é válido.'));
+          alert('Erro ao registrar coleta. Verifique os dados.');
         }
       } catch (error) {
-        console.error('Erro:', error);
-        alert('Erro de conexão. Certifique-se de que o servidor Node.js (back-end) está ligado.');
+        alert('Erro de conexão com o servidor.');
       }
     });
 
-    document.getElementById('cadastroEnderecoForm').addEventListener('submit', (e) => {
+// ========== CADASTRO DE NOVO ENDEREÇO CONECTADO À API ==========
+    document.getElementById('cadastroEnderecoForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      alert('Endereço cadastrado com sucesso!');
-      closeCadastroEndereco();
-      document.getElementById('cadastroEnderecoForm').reset();
+
+      const user = getCurrentUser();
+      if (!user) {
+        alert('Sessão expirada. Por favor, faça login novamente.');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // Captura os dados usando os IDs exatos do principal.html
+      const rua = document.getElementById('rua').value.trim();
+      const numero = document.getElementById('numero').value.trim();
+      const complemento = document.getElementById('complemento').value.trim();
+      const bairro = document.getElementById('bairro').value.trim();
+      const cep = document.getElementById('cep').value.trim();
+      
+      // Junta a rua com o complemento para salvar no banco de dados (ex: "Rua das Flores - Apto 101")
+      const logradouroCompleto = complemento ? `${rua} - ${complemento}` : rua;
+
+      try {
+        const resposta = await fetch('http://localhost:3000/api/enderecos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario_id: user.id, // O ID real do cidadão logado
+            cep: cep,
+            logradouro: logradouroCompleto,
+            numero: numero,
+            bairro: bairro,
+            zona_id: 1 // Fixo na zona 1 temporariamente
+          })
+        });
+
+        if (resposta.ok) {
+          alert('✅ Novo endereço cadastrado com sucesso!');
+          document.getElementById('cadastroEnderecoForm').reset(); // Limpa os campos
+          renderListaEnderecos();
+        } else {
+          const erro = await resposta.json();
+          alert('Erro ao cadastrar endereço: ' + (erro.mensagem || 'Verifique os dados informados.'));
+        }
+      } catch (error) {
+        console.error('Erro ao cadastrar endereço:', error);
+        alert('Erro de conexão. Certifique-se de que o servidor back-end está ligado.');
+      }
     });
 
     // ========== ASSISTENTE VIRTUAL / MODO IDOSO ==========
@@ -628,21 +726,7 @@ function stopTruckAtTrash(truckData, trash) {
       openAssistant();
     });
 
-    function openAssistant() {
-      const modal = document.getElementById('assistantModal');
-      if (!modal) return;
-
-      modal.classList.add('open');
-      modal.setAttribute('aria-hidden', 'false');
-      closeAssistantOptions();
-
-      const nameInput = document.getElementById('assistantName');
-      const birthDateInput = document.getElementById('assistantBirthDate');
-
-      if (nameInput) nameInput.focus();
-      if (nameInput && !nameInput.value) nameInput.value = '';
-      if (birthDateInput && !birthDateInput.value) birthDateInput.value = '';
-    }
+ 
 
     function startAssistantTutorial() {
       closeAssistantOptions();
@@ -727,10 +811,105 @@ function stopTruckAtTrash(truckData, trash) {
       button.setAttribute('aria-expanded', 'false');
     }
 
+// ========== ASSISTENTE VIRTUAL (INTEGRAÇÃO COM GEMINI IA) ==========
+    let chatHistory = []; // Guarda o histórico da conversa para dar contexto à IA
+
+    document.getElementById('assistantFab').addEventListener('click', openAssistant);
+
+    function openAssistant() {
+      const modal = document.getElementById('assistantModal');
+      if (modal) {
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+    }
+
     function closeAssistant() {
-      document.getElementById('assistantModal').classList.remove('open');
-      document.getElementById('assistantModal').setAttribute('aria-hidden', 'true');
-      closeAssistantOptions();
+      const modal = document.getElementById('assistantModal');
+      if (modal) {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    // Dispara a mensagem se apertar a tecla "Enter"
+    function handleChatKeyPress(event) {
+      if (event.key === 'Enter') {
+        enviarMensagemChat();
+      }
+    }
+
+    async function enviarMensagemChat() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return; // Não envia mensagens vazias
+
+      const chatContainer = document.getElementById('chatContainer');
+
+      // 1. Mostrar a mensagem do usuário na tela
+      chatContainer.innerHTML += `
+        <div style="align-self: flex-end; background: var(--primary-color); color: white; padding: 10px 14px; border-radius: 12px; max-width: 80%;">
+          ${text}
+        </div>
+      `;
+      input.value = ''; // Limpar o campo
+      chatContainer.scrollTop = chatContainer.scrollHeight; // Rolar para o fim
+
+      // 2. Salvar no histórico (formato que a API do Gemini exige)
+      chatHistory.push({ role: "user", parts: [{ text: text }] });
+
+      // 3. Adicionar o aviso de "Digitando..."
+      const loadingId = 'loading-' + Date.now();
+      chatContainer.innerHTML += `
+        <div id="${loadingId}" style="align-self: flex-start; background: #e0e0e0; padding: 10px 14px; border-radius: 12px; font-style: italic;">
+          Pensando...
+        </div>
+      `;
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      try {
+        // 4. Enviar para a sua rota no Node.js
+        const resposta = await fetch('http://localhost:3000/api/assistant/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ history: chatHistory })
+        });
+
+        // 5. Remover o aviso de "Digitando..."
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) loadingElement.remove();
+
+        if (resposta.ok) {
+          const data = await resposta.json();
+          const repostaIA = data.reply;
+
+          // Troca quebras de linha por <br> para manter a formatação do texto da IA
+          const formatText = repostaIA.replace(/\n/g, '<br>');
+
+          // 6. Mostrar a resposta da IA na tela
+          chatContainer.innerHTML += `
+            <div style="align-self: flex-start; background: #e0e0e0; padding: 10px 14px; border-radius: 12px; max-width: 80%;">
+              ${formatText}
+            </div>
+          `;
+          
+          // 7. Salvar resposta no histórico
+          chatHistory.push({ role: "model", parts: [{ text: repostaIA }] });
+        } else {
+          chatContainer.innerHTML += `<div style="align-self: flex-start; color: red;">Erro ao processar a resposta da IA.</div>`;
+        }
+      } catch (error) {
+        console.error("Erro na IA:", error);
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) loadingElement.remove();
+        
+        chatContainer.innerHTML += `
+          <div style="align-self: flex-start; background: #ffcdd2; color: #c62828; padding: 10px 14px; border-radius: 12px;">
+            Erro de conexão com o Assistente. O servidor Node.js está a correr?
+          </div>
+        `;
+      }
+      chatContainer.scrollTop = chatContainer.scrollHeight; // Rolar para o fim novamente
     }
 
     function processAssistantData() {
@@ -958,6 +1137,75 @@ function recoverPassword() {
       alert("Erro ao enviar email.");
   });
 }
+
+// ========== LISTAR E DELETAR ENDEREÇOS ==========
+    async function renderListaEnderecos() {
+      const listaEnderecos = document.getElementById('listaEnderecos');
+      if (!listaEnderecos) return;
+
+      const user = getCurrentUser();
+      if (!user) return;
+
+      listaEnderecos.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">Carregando seus endereços...</p>';
+
+      try {
+        const resposta = await fetch('http://localhost:3000/api/enderecos');
+        const todosEnderecos = await resposta.json();
+        
+        // Filtra só os endereços deste usuário
+        const meusEnderecos = todosEnderecos.filter(end => end.usuario_id === user.id);
+
+        listaEnderecos.innerHTML = '';
+
+        if (meusEnderecos.length === 0) {
+          listaEnderecos.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">Você ainda não possui endereços cadastrados.</p>';
+          return;
+        }
+
+        meusEnderecos.forEach(end => {
+          const item = document.createElement('div');
+          item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;';
+          
+          item.innerHTML = `
+            <div style="font-size: 0.9rem;">
+              <strong>${end.logradouro}, ${end.numero}</strong><br>
+              <span style="color: #666;">Bairro: ${end.bairro} | CEP: ${end.cep}</span>
+            </div>
+            <button onclick="deletarEndereco(${end.id})" style="background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; border-radius: 4px; padding: 6px 12px; cursor: pointer; transition: 0.3s; font-weight: bold;" aria-label="Excluir endereço">Excluir</button>
+          `;
+          listaEnderecos.appendChild(item);
+        });
+      } catch (error) {
+        console.error('Erro ao carregar endereços:', error);
+        listaEnderecos.innerHTML = '<p style="color:red; font-size:0.9rem;">Erro ao carregar endereços do servidor.</p>';
+      }
+    }
+
+    async function deletarEndereco(enderecoId) {
+      const user = getCurrentUser();
+      if (!user) return;
+
+      const confirmar = confirm('Tem certeza que deseja excluir este endereço?');
+      if (!confirmar) return;
+
+      try {
+        // A nossa rota exige o ID do endereço e o ID do usuário para segurança!
+        const resposta = await fetch(`http://localhost:3000/api/enderecos/${enderecoId}/${user.id}`, {
+          method: 'DELETE'
+        });
+
+        if (resposta.ok) {
+          alert('✅ Endereço excluído com sucesso!');
+          renderListaEnderecos(); // Recarrega a listinha na hora!
+        } else {
+          const erro = await resposta.json();
+          alert('Erro ao excluir: ' + (erro.mensagem || 'Tente novamente.'));
+        }
+      } catch (error) {
+        console.error('Erro ao deletar endereço:', error);
+        alert('Erro de conexão com o servidor.');
+      }
+    }
     // ========== INICIALIZAÇÃO ==========
     verifySession();
   

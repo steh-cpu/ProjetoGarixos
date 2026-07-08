@@ -190,8 +190,10 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="endereco">Endereço:</label>
-              <input type="text" id="endereco" placeholder="Rua, número, complemento" required>
+              <label for="endereco">Endereço de Coleta:</label>
+              <select id="endereco" required>
+                <option value="">Carregando seus endereços...</option>
+              </select>
             </div>
             <div class="form-group">
               <label for="nomeSolicitacao">Nome:</label>
@@ -290,7 +292,15 @@
               <input type="text" id="cep" placeholder="00000-000" maxlength="9" required>
             </div>
             <button type="submit" class="primary-btn">Cadastrar Endereço</button>
-          </form>
+</form>
+            <div id="meusEnderecosSection" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
+              <h3 style="margin-bottom: 1rem; color: var(--primary-color);">Meus Endereços Cadastrados</h3>
+              <div id="listaEnderecos" style="display: flex; flex-direction: column; gap: 10px;">
+                </div>
+            </div>
+            </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
@@ -302,6 +312,23 @@
         <h2 id="noticiasTitle">Notícias Ambientais</h2>
         <div class="modal-body">
           <div id="noticiasContainer" class="noticias-container"></div>
+        </div>
+      </div>
+    </div>
+    <div id="assistantModal" class="modal" role="dialog" aria-hidden="true">
+      <div class="modal-content">
+        <button class="close-btn" onclick="closeAssistant()">&times;</button>
+        <h2>Assistente Inteligente (Gemini)</h2>
+        
+        <div id="chatContainer" style="height: 350px; overflow-y: auto; background: #f4f4f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="align-self: flex-start; background: #e0e0e0; padding: 10px 14px; border-radius: 12px; max-width: 80%;">
+            Olá! Eu sou a inteligência artificial do Garixos. Como posso ajudar você hoje com a coleta de resíduos ou reciclagem?
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="chatInput" placeholder="Digite sua pergunta aqui..." style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px;" onkeypress="handleChatKeyPress(event)">
+          <button onclick="enviarMensagemChat()" class="primary-btn" style="width: auto; padding: 0 20px;">Enviar</button>
         </div>
       </div>
     </div>
